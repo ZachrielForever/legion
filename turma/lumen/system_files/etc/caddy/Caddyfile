@@ -1,0 +1,11 @@
+# TODO: replace with real domain when acquired
+# lumen.example.tld {
+#     basicauth {
+#         zachriel <bcrypt-hash-here>
+#     }
+#     file_server browse
+#     root * /srv/public
+# }
+:80 {
+    respond "Legion public endpoint" 200
+}

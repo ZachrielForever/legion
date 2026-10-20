@@ -1,0 +1,10 @@
+[DEFAULT]
+bantime = 1h
+findtime = 10m
+maxretry = 5
+backend = systemd
+
+[caddy-auth]
+enabled = true
+port = http,https
+journalmatch = _SYSTEMD_UNIT=caddy.service

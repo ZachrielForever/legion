@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<zone>
+  <short>Public (lumen)</short>
+  <description>WAN-facing zone. Web only. Nothing else.</description>
+  <service name="http"/>
+  <service name="https"/>
+</zone>
