@@ -76,7 +76,7 @@ jobs:
           just build \
             ${IMAGE_NAME} \
             ${DEFAULT_TAG} \
-            turma
+            turma/platform
 
       # This is optional, this provides smaller delta updates
       - name: Rechunk with rpm-ostree
