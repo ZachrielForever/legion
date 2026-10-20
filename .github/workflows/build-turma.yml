@@ -10,7 +10,7 @@ on:
     branches:
       - main
     paths-ignore:
-      - 'turma/**'
+      - 'turma/platform/**'
       - '.github/workflows/build-turma.yml'
   workflow_dispatch:
 
