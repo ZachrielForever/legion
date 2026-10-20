@@ -1,0 +1,23 @@
+# legion turma layer - EliteDesk 800 G4 platform
+#
+# Platform layer for the six EliteDesk minis (turma): firmware servicing
+# and platform support. No role packages - those live in the variant
+# tags (lumen, vesta, vox, solutio, vigil, talos).
+
+# Stage build scripts into a scratch context so they aren't in the final image
+FROM scratch AS ctx
+COPY build_files /
+COPY system_files /system_files
+
+# Base Image
+FROM ghcr.io/zachrielforever/legion:stable
+
+### MODIFICATIONS
+RUN --mount=type=bind,from=ctx,source=/,target=/ctx \
+    --mount=type=cache,dst=/var/cache \
+    --mount=type=cache,dst=/var/log \
+    --mount=type=tmpfs,dst=/tmp \
+    /ctx/build.sh
+
+### LINTING
+RUN bootc container lint
