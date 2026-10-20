@@ -68,11 +68,9 @@ dnf5 install -y \
 
 # Plumbing
 dnf5 install -y \
-    jq \
     xauth \
-    java-21-openjdk-headless \
-    unzip \
-    curl
+    java-25-openjdk
+
 
 ### Ghidra - pinned release, checksum-verified
 #
