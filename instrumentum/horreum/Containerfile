@@ -1,0 +1,22 @@
+# legion instrumentum:horreum - NAS (storage) node
+#
+# Solo image: does not descend from legion base. Built directly from
+# ucore-hci (ZFS, Cockpit) with fleet policy reapplied. Storage is
+# the OS's job here; file services (SMB/NFS) run as containers.
+
+FROM scratch AS ctx
+COPY build_files /
+COPY system_files /system_files
+
+# Base Image
+FROM ghcr.io/ublue-os/ucore-hci:stable
+
+### MODIFICATIONS
+RUN --mount=type=bind,from=ctx,source=/,target=/ctx \
+    --mount=type=cache,dst=/var/cache \
+    --mount=type=cache,dst=/var/log \
+    --mount=type=tmpfs,dst=/tmp \
+    /bin/bash /ctx/build.sh
+
+### LINTING
+RUN bootc container lint

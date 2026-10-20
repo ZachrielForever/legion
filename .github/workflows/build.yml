@@ -9,8 +9,11 @@ on:
   push:
     branches:
       - main
-    paths-ignore:
-      - '**/README.md'
+    paths:
+      - "Containerfile"
+      - "build_files/**"
+      - "system_files/**"
+      - ".github/workflows/build.yml"
   workflow_dispatch:
 
 env:

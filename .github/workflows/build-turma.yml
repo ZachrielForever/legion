@@ -9,9 +9,9 @@ on:
   push:
     branches:
       - main
-    paths-ignore:
-      - 'turma/platform/**'
-      - '.github/workflows/build-turma.yml'
+    paths:
+      - "turma/platform/**"
+      - ".github/workflows/build-turma.yml"
   workflow_dispatch:
 
 env:
