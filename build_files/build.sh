@@ -1,5 +1,16 @@
 #!/bin/bash
 
+# ==============================================================================
+# legion base image - fleet policy build script
+#
+# True of EVERY fleet node: tailnet membership, hardened SSH posture,
+# TTY tooling, basic diagnostics. Hardware specifics live in derived
+# images (ed/, variants/); role packages live in role variants.
+#
+# Boilerplate below is from the ublue image-template; package list is
+# modeled on ZachrielForever/dominus build.sh, trimmed to fleet-common.
+# ==============================================================================
+
 set -ouex pipefail
 
 # Copy the contents of system_files/ of the git repo to /
@@ -7,21 +18,45 @@ cp -avf "/ctx/system_files"/. /
 
 ### Install packages
 
-# Packages can be installed from any enabled yum repo on the image.
-# RPMfusion repos are available by default in ublue main images
-# List of rpmfusion packages can be found here:
-# https://mirrors.rpmfusion.org/mirrorlist?path=free/fedora/updates/43/x86_64/repoview/index.html&protocol=https&redirect=1
+# Core shell and interactive tooling
+dnf5 install -y \
+    btop \
+    fastfetch \
+    fish \
+    git \
+    jq \
+    micro \
+    tmux \
+    tree \
+    yq
 
-# this installs a package from fedora repos
-dnf5 install -y tmux
+# Console fonts for physical display
+dnf5 install -y \
+    terminus-fonts
 
-# Use a COPR Example:
-#
-# dnf5 -y copr enable ublue-os/staging
-# dnf5 -y install package
-# Disable COPRs so they don't end up enabled on the final image:
-# dnf5 -y copr disable ublue-os/staging
+# Diagnostics - the minimum every node should have for triage
+dnf5 install -y \
+    ethtool \
+    iotop \
+    lsof \
+    mtr \
+    strace \
+    sysstat \
+    bind-utils
 
-#### Example for enabling a System Unit File
+# Transfer and verification (checksum manifests between nodes)
+dnf5 install -y \
+    lz4 \
+    pv \
+    rsync \
+    xz \
+    zstd
 
-systemctl enable podman.socket
+# Overlay networking
+dnf5 install -y \
+    tailscale
+
+### Services
+
+# Tailscale daemon (enrollment state persists in /var across image updates)
+systemctl enable tailscaled
