@@ -1,30 +1,23 @@
 #!/bin/bash
 
 # ==============================================================================
-# legion vox - private media server (UHD 630 media stack)
+# legion vox - private media server (tailnet only)
 #
-# Drivers/codecs for hardware transcoding; actual media serving (Jellyfin)
-# runs as containers via quadlet. No public exposure; Tailscale-only access.
+# Host carries only the driver stack for the UHD 630: VA-API for
+# hardware decode/encode, passthrough via /dev/dri to containers.
+# Media services (Jellyfin, etc.) run as quadlets with their own
+# bundled ffmpeg - no transcoding binaries on the host.
 # ==============================================================================
 
 set -ouex pipefail
 
+# Copy the contents of system_files/ of the git repo to /
 cp -avf "/ctx/system_files"/. /
 
 ### Install packages
 
-# Intel QuickSync VA-API driver stack (UHD 630 decode/encode)
+# Hardware video decode/encode (Quick Sync on UHD 630)
+# libva-intel-media-driver is in Fedora proper; intel-media-driver is RPM Fusion
 dnf5 install -y \
-    intel-media-driver \
-    libva-utils \
-    vainfo
-
-# Media transcoding utilities (used by Jellyfin for format conversion)
-dnf5 install -y \
-    ffmpeg
-
-# Audio codec support (OPUS, FLAC, AAC for music library)
-dnf5 install -y \
-    gstreamer1-plugins-base \
-    gstreamer1-plugins-good \
-    gstreamer1-plugins-bad-free
+    libva-intel-media-driver \
+    libva-utils
