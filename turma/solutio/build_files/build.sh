@@ -75,6 +75,8 @@ dnf5 install -y \
 ### Ghidra - pinned release, checksum-verified
 #
 # Source: https://github.com/NationalSecurityAgency/ghidra/releases/tag/Ghidra_12.1.4_build
+# Installed under /usr/lib: on ostree/bootc systems /opt and /usr/local are
+# symlinks into /var, which is machine-local state and NOT carried in the image.
 GHIDRA_ZIP_URL="https://github.com/NationalSecurityAgency/ghidra/releases/download/Ghidra_12.1.4_build/ghidra_12.1.4_PUBLIC_20260921.zip"
 GHIDRA_SHA256="ddac49f903da9d5bac833e5cc79395098b9c33cfd3279be5f31bd00387d2d4db"
 
@@ -82,8 +84,9 @@ curl -fL -o /tmp/ghidra.zip "${GHIDRA_ZIP_URL}"
 
 echo "${GHIDRA_SHA256}  /tmp/ghidra.zip" | sha256sum --check --strict
 
-unzip -q /tmp/ghidra.zip -d /opt
-GhidraDir=$(echo /opt/ghidra_*)
-ln -sf "${GhidraDir}/ghidraRun" /usr/local/bin/ghidra
-ln -sf "${GhidraDir}/support/analyzeHeadless" /usr/local/bin/ghidra-headless
+mkdir -p /usr/lib/ghidra
+unzip -q /tmp/ghidra.zip -d /usr/lib/ghidra
+GhidraDir=$(echo /usr/lib/ghidra/ghidra_*)
+ln -sf "${GhidraDir}/ghidraRun" /usr/bin/ghidra
+ln -sf "${GhidraDir}/support/analyzeHeadless" /usr/bin/ghidra-headless
 rm -f /tmp/ghidra.zip
