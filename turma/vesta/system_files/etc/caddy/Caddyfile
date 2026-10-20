@@ -1,0 +1,20 @@
+# vesta: private web/file server, tailnet only.
+#
+# Uses Caddy's internal CA - no public ACME, no domain required.
+# First visit per device warns about the untrusted cert; accept once
+# (or install Caddy's root cert on your devices to silence it).
+#
+# After first boot, generate the password hash:
+#   caddy hash-password --plaintext 'yourpassword'
+# paste it below, then: sudo systemctl reload caddy
+
+vesta.zachrielforever.ts.net {
+    tls internal
+
+    basic_auth {
+        zachriel REPLACE_WITH_BCRYPT_HASH
+    }
+
+    root * /srv/private
+    file_server browse
+}

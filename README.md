@@ -19,7 +19,7 @@ ghcr.io/ublue-os/ucore:stable-nvidia-lts separate lineage │ ▼ dominus game s
 | Dominus | game server fleet | dominus |
 | Aegis | macOS host | — |
 | Thaumiel | Android rescue device | — |
-| Lumen | public WAN web/file | lumen *(planned)* |
+| Lumen | public WAN web/file | lumen |
 | Vesta | private web/file | vesta *(planned)* |
 | Vox | private media | vox *(planned)* |
 | Solutio | dev server | solutio *(planned)* |
