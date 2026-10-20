@@ -24,7 +24,7 @@ ghcr.io/ublue-os/ucore:stable-nvidia-lts separate lineage │ ▼ dominus game s
 | Vox | private media | vox |
 | Solutio | dev server | solutio *(planned)* |
 | Vigil | monitoring, DNS, network | vigil |
-| Talos | forgejo, runner, registry | talos *(planned)* |
+| Talos | forgejo, runner, registry | talos |
 | Horreum | NAS | horreum |
 | Memoria | emulation dock | memoria *(planned)* |
 
