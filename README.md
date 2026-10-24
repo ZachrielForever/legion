@@ -22,7 +22,7 @@ ghcr.io/ublue-os/ucore:stable-nvidia-lts separate lineage │ ▼ dominus game s
 | Lumen | public WAN web/file | lumen |
 | Vesta | private web/file | vesta |
 | Vox | private media | vox |
-| Solutio | dev server | solutio *(planned)* |
+| Solutio | dev server | solutio |
 | Vigil | monitoring, DNS, network | vigil |
 | Talos | forgejo, runner, registry | talos |
 | Horreum | NAS | horreum |

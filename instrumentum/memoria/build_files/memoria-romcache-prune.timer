@@ -1,0 +1,9 @@
+[Unit]
+Description=Daily Memoria ROM cache prune
+
+[Timer]
+OnCalendar=daily
+Persistent=true
+
+[Install]
+WantedBy=timers.target

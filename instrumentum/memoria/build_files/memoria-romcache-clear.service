@@ -1,0 +1,10 @@
+[Unit]
+Description=Wipe Memoria ROM cache on boot
+After=local-fs.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/libexec/memoria/romcache-clear
+
+[Install]
+WantedBy=multi-user.target

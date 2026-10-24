@@ -1,0 +1,6 @@
+[Unit]
+Description=Prune aged ROMs from Memoria cache
+
+[Service]
+Type=oneshot
+ExecStart=/usr/libexec/memoria/romcache-prune
