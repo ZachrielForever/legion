@@ -449,7 +449,10 @@ for group in NETWORK ARCHIVE BINARY TOOLCHAIN OBSERVE EMULATE DISK \
              STORAGE HARDWARE WINARTIFACT NETFORENSICS MEDIA FUSION \
              OPTICAL PWCRACK MALWARE CLOUD DB HASH BIGIMAGE MOBILE \
              WINDOWS PLUMBING COPR; do
-    dnf5 install -y "$(eval echo \${PKGS_${group}[@]})"
+    declare -n pkgs="PKGS_${group}"
+    echo ">>> Installing group: ${group} (${#pkgs[@]} packages)"
+    dnf5 install -y "${pkgs[@]}"
+    unset -n pkgs
 done
 
 ### -------------------------------------------------------------------
