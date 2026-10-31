@@ -441,7 +441,6 @@ PIPX_TOOLS=(
     sqlmap             # SQL injection (offense)
     impacket           # AD post-exploitation (offense)
     responder          # LLMNR/NBT-NS poisoning (offense)
-    netexec            # network situational awareness (offense)
     # angr             # symbolic execution; enable on demand
 )
 
