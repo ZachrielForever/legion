@@ -24,14 +24,20 @@
 # and belongs in a disposable distrobox on this host, NOT in the
 # signed image.
 #
+# THIRD-PARTY REPO TRUST LEDGER (build-time, GPG-signed communities):
+#   - GIFT COPR @gift/stable    (plaso, and friends)
+#   - RPM Fusion free/nonfree   (ffmpeg)
+#   Their repo configs ship in this image, so runtime updates pull
+#   from them as well - all packages GPG-verified. Same trust class
+#   as each other; both are opt-in decisions, recorded here.
+#
 # VERIFICATION PASS: every package below is checked against enabled
-# repos (dnf5 repoquery) BEFORE any bulk install. Missing packages
-# are reported as a complete named list plus the enabled repolist
-# (so repo-visibility anomalies like the 2026-10-31 xauth/ffmpeg
-# case can be diagnosed from the same output) and the build fails
-# there. Only dnf5-plugins is installed unguarded (needed to enable
-# the COPR before the check can see its contents). This is the
-# triage gate: the CI failure output IS the why/where/how.
+# repos (dnf5 repoquery --available, the documented default scope)
+# BEFORE any bulk install. Missing packages are reported as a
+# complete named list plus the enabled repolist and the build fails
+# there. Repo enables are ASSERTED, not trusted: a repo that fails
+# to appear in repolist aborts the build with a named error (the
+# 2026-10-31 copr silent-decline taught us exit codes lie).
 #
 # TRIAGE HISTORY:
 #   2026-10-31 run 1 - "python3-pipx" does not exist in Fedora;
@@ -46,23 +52,38 @@
 #                guestfs-tools (upstream split 2021), ewf-tools ->
 #                ewftools (Fedora subpackage naming), dosbox ->
 #                dosbox-staging (classic dosbox retired from Fedora).
-#                sqlmap moved to pipx (not packaged in Fedora at
-#                all). scrcpy dropped (COPR-only AND a workstation
-#                GUI tool - a headless node has no use for it).
-#                hashdeep KEPT deliberately: could not confirm
-#                either way, so the gate itself arbitrates; if it
-#                reappears, drop it and rely on ssdeep + sha256sum
-#                manifest workflow. xauth/ffmpeg anomalies: kept,
-#                repolist now dumped on failure to diagnose.
+#                sqlmap moved to pipx (not packaged in Fedora).
+#                scrcpy dropped (COPR-only AND a workstation GUI
+#                tool - a headless node has no use for it).
+#   2026-10-31 run 3 - repolist dump exposed two silent failures:
+#                (a) "dnf5 copr enable" prompts for confirmation;
+#                    no-TTY EOF answers "no" and exits 0 - the COPR
+#                    was never enabled, hence plaso-tools missing.
+#                    Fix: -y flag plus repolist ASSERTION.
+#                (b) the ucore build container has NO RPM Fusion
+#                    repos (repolist: fedora, updates,
+#                    updates-archive only), so ffmpeg was never
+#                    resolvable. Fix: explicit build-time enable of
+#                    RPM Fusion via release RPMs; ffmpeg moved to
+#                    PKGS_FUSION.
+#                (c) xauth -> xorg-x11-xauth (Fedora package name;
+#                    "xauth" is the Debian/Ubuntu name - my
+#                    cross-distro bias, third such rename).
+#                (d) hashdeep REMOVED: flagged missing in runs 2
+#                    AND 3 against the full repo set = confirmed
+#                    absent, not a visibility anomaly. ssdeep +
+#                    sha256sum manifest workflow cover the need.
 #
 # KNOWN NOT PACKAGED (do not add to arrays - handled by pinned
 # release blocks or documented routes below):
-#   plaso           -> GIFT COPR @gift/stable (enabled below);
-#                       array entry MUST read "plaso-tools" exactly
+#   plaso           -> GIFT COPR @gift/stable (enabled + asserted)
+#   ffmpeg          -> RPM Fusion free (enabled + asserted)
 #   zeek            -> openSUSE Build Service repos only; left OUT.
 #                      suricata covers protocol reconstruction.
 #   bettercap       -> Go binary; candidate for pinned-release block
 #   metasploit      -> Rapid7 nightly repo only; distrobox instead
+#   hashdeep        -> absent from Fedora repos (runs 2+3); rely on
+#                      ssdeep + sha256sum workflow
 #   scrcpy          -> COPR-only (zeno/scrcpy); workstation tool,
 #                      run from your desktop, not this headless node
 #   sqlmap          -> pipx (see Python tier below)
@@ -70,7 +91,8 @@
 #                      checksums (see commented blocks below)
 #
 # GUI tools (ghidra, imhex, wireshark) run over `ssh -X` from a
-# workstation; xauth enables it on this otherwise-headless host.
+# workstation; xorg-x11-xauth enables it on this otherwise-headless
+# host.
 # ==============================================================================
 
 set -ouex pipefail
@@ -216,14 +238,23 @@ PKGS_NETFORENSICS=(
     suricata
 )
 
-# Audio/video/document stream extraction & metadata
+# Audio/video/document stream extraction & metadata.
+# NOTE: ffmpeg lives in PKGS_FUSION (RPM Fusion free repo - not
+# available in the stock fedora/updates build container; enabled
+# explicitly below).
 PKGS_MEDIA=(
-    ffmpeg
     mediainfo
     sox
     perl-Image-ExifTool
     poppler-utils
     pdfgrep
+)
+
+# RPM Fusion free additions (third-party repo - see trust ledger
+# in the header). Quarantined array: nothing from a third-party
+# repo hides among native-repo packages.
+PKGS_FUSION=(
+    ffmpeg
 )
 
 # Legacy optical disc handling (subchannel/RAW reads - disc-protection era)
@@ -259,12 +290,11 @@ PKGS_DB=(
 )
 
 # Integrity & fuzzy hashing
-# hashdeep deliberately retained despite run 2 triage flag: could
-# not confirm either way from outside; the gate arbitrates. If it
-# reappears as MISSING, remove it - ssdeep + sha256sum manifest
-# workflow covers integrity auditing.
+# NOTE: hashdeep was REMOVED after run 3 - confirmed absent from
+# Fedora repos (missing in runs 2 AND 3 against the full repo
+# set). ssdeep covers fuzzy hashing; exact-hash auditing is the
+# sha256sum manifest workflow this fleet already runs.
 PKGS_HASH=(
-    hashdeep
     ssdeep
 )
 
@@ -275,10 +305,10 @@ PKGS_BIGIMAGE=(
     miller
 )
 
-# Mobile device access & mirroring.
-# scrcpy REMOVED: COPR-only packaging, and it is a display-mirroring
-# GUI tool - useless on a headless node. Run it from a workstation
-# against the USB-connected phone instead.
+# Mobile device access.
+# scrcpy REMOVED (run 2): COPR-only packaging, and it is a
+# display-mirroring GUI tool - useless on a headless node. Run it
+# from a workstation against the USB-connected phone instead.
 PKGS_MOBILE=(
     android-tools
     libimobiledevice-utils
@@ -291,34 +321,64 @@ PKGS_WINDOWS=(
 )
 
 # Plumbing (incl. build-time deps for pinned installs below)
+# NOTE: xorg-x11-xauth is Fedora's package name for the xauth
+# binary ("xauth" is the Debian/Ubuntu package name).
 PKGS_PLUMBING=(
-    xauth
+    xorg-x11-xauth
     java-25-openjdk
     unzip
     curl
     pipx
 )
 
-# Third-party COPR additions (enabled below before verification)
-# SPELLING MATTERS: "plaso-tools" exactly - run 2 failed partly on
-# a spelling drift here.
+# Third-party COPR additions (enabled + asserted below)
 PKGS_COPR=(
     plaso-tools
 )
 
 ### ------------------------------------------------------------------
-### Repository setup - the ONLY unguarded install in the script.
-### dnf5-plugins is required to enable the COPR at all; everything
-### else waits for the verification pass.
+### Repository setup - the ONLY unguarded installs in the script.
+### dnf5-plugins is needed for the COPR command at all; the RPM
+### Fusion release RPMs are needed to make fusion visible in the
+### build container. Everything else waits for the verification
+### pass. Every enable below is ASSERTED afterwards: run 3 taught
+### us that a silent interactive prompt (copr enable without -y)
+### exits 0 while accomplishing NOTHING.
 ### ------------------------------------------------------------------
 
 dnf5 install -y dnf5-plugins
 
+# RPM Fusion - the ucore build container ships WITHOUT fusion repo
+# configs (repolist on run 3 showed fedora/updates/updates-archive
+# only), so ffmpeg et al. were unresolvable. Versionless-but-pinned:
+# the release RPM is keyed to the container's Fedora version.
+FEDORA_VERSION="$(rpm -E %fedora)"
+curl -fL -o /tmp/rpmfusion-free.rpm \
+    "https://mirrors.rpmfusion.org/free/fedora/rpmfusion-free-release-${FEDORA_VERSION}.noarch.rpm"
+curl -fL -o /tmp/rpmfusion-nonfree.rpm \
+    "https://mirrors.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-${FEDORA_VERSION}.noarch.rpm"
+dnf5 install -y /tmp/rpmfusion-free.rpm /tmp/rpmfusion-nonfree.rpm
+rm -f /tmp/rpmfusion-free.rpm /tmp/rpmfusion-nonfree.rpm
+
 # GIFT COPR for plaso (official Plaso packaging; supports current
 # Fedora stable). NOTE: when ucore rebases to a newer Fedora before
 # the COPR catches up, THIS is where the build will fail - expected.
-dnf5 copr enable @gift/stable
+dnf5 -y copr enable @gift/stable
 dnf5 makecache
+
+### Repo assertions - fail loudly if an enable silently no-op'd.
+if ! dnf5 repolist | grep -qi "gift"; then
+    echo "FATAL: GIFT COPR did not appear in repolist after enable."
+    echo "The dnf5 copr plugin may have silently declined. Debug:"
+    echo "  dnf5 -y copr enable @gift/stable ; dnf5 repolist"
+    exit 1
+fi
+if ! dnf5 repolist | grep -qi "rpmfusion-free"; then
+    echo "FATAL: RPM Fusion free repo did not appear in repolist"
+    echo "after release RPM install. Debug:"
+    echo "  dnf5 repolist ; ls /etc/yum.repos.d/rpmfusion*"
+    exit 1
+fi
 
 ### ------------------------------------------------------------------
 ### Verification pass - fail fast, name EVERYTHING that is missing
@@ -341,6 +401,7 @@ ALL_PKGS=(
     "${PKGS_WINARTIFACT[@]}"
     "${PKGS_NETFORENSICS[@]}"
     "${PKGS_MEDIA[@]}"
+    "${PKGS_FUSION[@]}"
     "${PKGS_OPTICAL[@]}"
     "${PKGS_PWCRACK[@]}"
     "${PKGS_MALWARE[@]}"
@@ -370,7 +431,7 @@ if ((${#MISSING_PKGS[@]} > 0)); then
     done
     echo ""
     echo "Enabled repos at time of check (for visibility diagnostics,"
-    echo "e.g. RPM Fusion availability):"
+    echo "e.g. RPM Fusion / COPR availability):"
     dnf5 repolist
     echo ""
     echo "Routes to resolution: correct the package name, verify the"
@@ -385,9 +446,9 @@ fi
 ### ------------------------------------------------------------------
 
 for group in NETWORK ARCHIVE BINARY TOOLCHAIN OBSERVE EMULATE DISK \
-             STORAGE HARDWARE WINARTIFACT NETFORENSICS MEDIA OPTICAL \
-             PWCRACK MALWARE CLOUD DB HASH BIGIMAGE MOBILE WINDOWS \
-             PLUMBING COPR; do
+             STORAGE HARDWARE WINARTIFACT NETFORENSICS MEDIA FUSION \
+             OPTICAL PWCRACK MALWARE CLOUD DB HASH BIGIMAGE MOBILE \
+             WINDOWS PLUMBING COPR; do
     dnf5 install -y "$(eval echo \${PKGS_${group}[@]})"
 done
 
@@ -552,6 +613,9 @@ pipx install netexec
 ###
 ### REMOVED - reasoned out, do not re-add without updating the
 ### triage history at the top:
-#   scrcpy - COPR-only AND a display-mirroring GUI tool; run from a
-#            workstation, not this headless node
+#   scrcpy   - COPR-only AND a display-mirroring GUI tool; run
+#              from a workstation, not this headless node (run 2)
+#   hashdeep - confirmed absent from Fedora repos after TWO
+#              consecutive triage flags (run 3); ssdeep + the
+#              sha256sum manifest workflow cover the need
 ### -------------------------------------------------------------------
