@@ -443,6 +443,23 @@ ln -sf /usr/lib/uefitool/UEFIFind /usr/bin/uefifind
 rm -f /tmp/uefifind.zip
 
 ### -------------------------------------------------------------------
+### bettercap - pinned release, checksum-verified
+# Network MITM/recon framework (WiFi, BLE, HID, CAN, IPv4/6).
+# Needs libpcap (tcpdump) and libusb (rtl-sdr); both present.
+### -------------------------------------------------------------------
+
+BETTERCAP_VERSION="2.41.7"
+BETTERCAP_URL="https://github.com/bettercap/bettercap/releases/download/v${BETTERCAP_VERSION}/bettercap_linux_amd64.zip"
+BETTERCAP_SHA256="REPLACE_WITH_HARVESTED_CHECKSUM"
+
+curl -fL -o /tmp/bettercap.zip "${BETTERCAP_URL}"
+echo "${BETTERCAP_SHA256}  /tmp/bettercap.zip" | sha256sum --check --strict
+unzip -o -j /tmp/bettercap.zip -d /usr/lib/bettercap
+chmod +x /usr/lib/bettercap/bettercap
+ln -sf /usr/lib/bettercap/bettercap /usr/bin/bettercap
+rm -f /tmp/bettercap.zip
+
+### -------------------------------------------------------------------
 ### Python tooling via pipx - gated, failures collected and reported
 # /usr (not ~/.local): /root is machine-local state on bootc, not
 # carried in the image.
