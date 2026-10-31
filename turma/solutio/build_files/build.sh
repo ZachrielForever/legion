@@ -605,6 +605,11 @@ pipx install responder
 # Network situational awareness / lateral movement (crackmapexec successor)
 pipx install netexec
 
+# Firmware/container format parsing: UEFI capsules, Intel ME, Dell BIOS
+# NOTE: PyPI distribution name is "uefi-firmware" (the GitHub repo is
+# uefi-firmware-parser; the installed COMMAND is uefi-firmware-parser).
+pipx install uefi-firmware
+
 # Symbolic execution - heavyweight; enable on demand if ever needed
 # pipx install angr
 
