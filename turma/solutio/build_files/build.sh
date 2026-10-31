@@ -25,18 +25,29 @@
 # signed image.
 #
 # VERIFICATION PASS: every package below is checked against enabled
-# repos (dnf5 repoquery) BEFORE any install. Missing packages are
-# reported as a complete named list and the build fails there. This
-# is the triage gate: the CI failure output IS the why/where/how.
+# repos (dnf5 repoquery) BEFORE any bulk install. Missing packages
+# are reported as a complete named list and the build fails there.
+# Only dnf5-plugins is installed unguarded (needed to enable the
+# COPR before the check can see its contents). This is the triage
+# gate: the CI failure output IS the why/where/how.
+#
+# TRIAGE HISTORY:
+#   2026-10-31 - "python3-pipx" does not exist in Fedora; the
+#                correct package name is "pipx". Plumbing moved
+#                under the verification pass after it failed ahead
+#                of the triage report.
+#   2026-10-31 - jadx + apktool blocks commented out pending
+#                checksum hunt; promoted after first green build.
 #
 # KNOWN NOT PACKAGED (do not add to arrays - handled by pinned
 # release blocks or documented routes below):
-#   jadx, apktool   -> pinned GitHub releases (see below)
 #   plaso           -> GIFT COPR @gift/stable (enabled below)
 #   zeek            -> openSUSE Build Service repos only; left OUT.
 #                      suricata covers protocol reconstruction.
 #   bettercap       -> Go binary; candidate for pinned-release block
 #   metasploit      -> Rapid7 nightly repo only; distrobox instead
+#   jadx, apktool   -> pinned GitHub releases; BLOCKED pending
+#                      checksums (see commented blocks below)
 #
 # GUI tools (ghidra, imhex, wireshark) run over `ssh -X` from a
 # workstation; xauth enables it on this otherwise-headless host.
@@ -254,8 +265,7 @@ PKGS_PLUMBING=(
     java-25-openjdk
     unzip
     curl
-    python3-pipx
-    dnf5-plugins
+    pipx
 )
 
 # Third-party COPR additions (enabled below before verification)
@@ -264,19 +274,25 @@ PKGS_COPR=(
 )
 
 ### ------------------------------------------------------------------
-### Verification pass - fail fast, name EVERYTHING that is missing
-###
-### Runs before any install. A missing package aborts the build with
-### a complete list, so a red CI run is the triage report itself.
+### Repository setup - the ONLY unguarded install in the script.
+### dnf5-plugins is required to enable the COPR at all; everything
+### else waits for the verification pass.
 ### ------------------------------------------------------------------
 
-dnf5 install -y "${PKGS_PLUMBING[@]}"
+dnf5 install -y dnf5-plugins
 
 # GIFT COPR for plaso (official Plaso packaging; supports current
 # Fedora stable). NOTE: when ucore rebases to a newer Fedora before
 # the COPR catches up, THIS is where the build will fail - expected.
 dnf5 copr enable @gift/stable
 dnf5 makecache
+
+### ------------------------------------------------------------------
+### Verification pass - fail fast, name EVERYTHING that is missing
+###
+### Runs before any bulk install. A missing package aborts the build
+### with a complete list, so a red CI run is the triage report itself.
+### ------------------------------------------------------------------
 
 ALL_PKGS=(
     "${PKGS_NETWORK[@]}"
@@ -300,6 +316,7 @@ ALL_PKGS=(
     "${PKGS_BIGIMAGE[@]}"
     "${PKGS_MOBILE[@]}"
     "${PKGS_WINDOWS[@]}"
+    "${PKGS_PLUMBING[@]}"
     "${PKGS_COPR[@]}"
 )
 
@@ -331,7 +348,8 @@ fi
 
 for group in NETWORK ARCHIVE BINARY TOOLCHAIN OBSERVE EMULATE DISK \
              STORAGE HARDWARE WINARTIFACT NETFORENSICS MEDIA OPTICAL \
-             PWCRACK MALWARE CLOUD DB HASH BIGIMAGE MOBILE WINDOWS; do
+             PWCRACK MALWARE CLOUD DB HASH BIGIMAGE MOBILE WINDOWS \
+             PLUMBING COPR; do
     dnf5 install -y "$(eval echo \${PKGS_${group}[@]})"
 done
 
@@ -361,45 +379,54 @@ rm -f /tmp/ghidra.zip
 ### -------------------------------------------------------------------
 ### jadx - pinned release, checksum-verified
 #
+# BLOCKED pending checksum hunt - intentionally commented out until
+# the first green build. Promote by: downloading the tagged release,
+# recording its SHA256 into JADX_SHA256 below, and uncommenting.
+#
 # NOT in Fedora repos (upstream documents Arch/brew/Flathub/manual
-# only). Ghidra-pattern pin: fill SHA256 from the release page
-# before first build - do NOT ship an unverified checksum.
+# only). DEX->Java decompiler: the fastest path from APK/JAR to
+# readable source. Complements apktool (resource/smali layer).
 ### -------------------------------------------------------------------
 
-JADX_VERSION="1.5.6"
-JADX_URL="https://github.com/skylot/jadx/releases/download/v${JADX_VERSION}/jadx-${JADX_VERSION}.zip"
-JADX_SHA256="VERIFY-BEFORE-BUILD: see https://github.com/skylot/jadx/releases tag v${JADX_VERSION}"
-
-curl -fL -o /tmp/jadx.zip "${JADX_URL}"
-
-echo "${JADX_SHA256}  /tmp/jadx.zip" | sha256sum --check --strict
-
-unzip -q /tmp/jadx.zip -d /usr/lib/jadx
-ln -sf /usr/lib/jadx/bin/jadx /usr/bin/jadx
-ln -sf /usr/lib/jadx/bin/jadx-gui /usr/bin/jadx-gui
-rm -f /tmp/jadx.zip
+# JADX_VERSION="1.5.6"
+# JADX_URL="https://github.com/skylot/jadx/releases/download/v${JADX_VERSION}/jadx-${JADX_VERSION}.zip"
+# JADX_SHA256="VERIFY-BEFORE-BUILD: see https://github.com/skylot/jadx/releases tag v${JADX_VERSION}"
+#
+# curl -fL -o /tmp/jadx.zip "${JADX_URL}"
+#
+# echo "${JADX_SHA256}  /tmp/jadx.zip" | sha256sum --check --strict
+#
+# unzip -q /tmp/jadx.zip -d /usr/lib/jadx
+# ln -sf /usr/lib/jadx/bin/jadx /usr/bin/jadx
+# ln -sf /usr/lib/jadx/bin/jadx-gui /usr/bin/jadx-gui
+# rm -f /tmp/jadx.zip
 
 
 ### -------------------------------------------------------------------
 ### apktool - pinned release, checksum-verified
 #
+# BLOCKED pending checksum hunt - intentionally commented out until
+# the first green build. Promote by: downloading the tagged release,
+# recording its SHA256 into APKTOOL_SHA256 below, and uncommenting.
+#
 # NOT in Fedora repos (upstream documents manual jar + wrapper
-# script). Single jar + wrapper; Java already on image.
+# script). Single jar + wrapper; Java already on image. Resource
+# and smali layer of APK analysis (jadx covers the Java layer).
 ### -------------------------------------------------------------------
 
-APKTOOL_VERSION="3.0.0"
-APKTOOL_URL="https://github.com/iBotPeaches/Apktool/releases/download/v${APKTOOL_VERSION}/apktool_${APKTOOL_VERSION}.jar"
-APKTOOL_SHA256="VERIFY-BEFORE-BUILD: see https://github.com/iBotPeaches/Apktool/releases tag v${APKTOOL_VERSION}"
-
-curl -fL -o /usr/lib/java/apktool.jar "${APKTOOL_URL}"
-
-echo "${APKTOOL_SHA256}  /usr/lib/java/apktool.jar" | sha256sum --check --strict
-
-cat > /usr/bin/apktool <<'EOF'
-#!/bin/sh
-exec java -jar /usr/lib/java/apktool.jar "$@"
-EOF
-chmod +x /usr/bin/apktool
+# APKTOOL_VERSION="3.0.0"
+# APKTOOL_URL="https://github.com/iBotPeaches/Apktool/releases/download/v${APKTOOL_VERSION}/apktool_${APKTOOL_VERSION}.jar"
+# APKTOOL_SHA256="VERIFY-BEFORE-BUILD: see https://github.com/iBotPeaches/Apktool/releases tag v${APKTOOL_VERSION}"
+#
+# curl -fL -o /usr/lib/java/apktool.jar "${APKTOOL_URL}"
+#
+# echo "${APKTOOL_SHA256}  /usr/lib/java/apktool.jar" | sha256sum --check --strict
+#
+# cat > /usr/bin/apktool <<'EOF'
+# #!/bin/sh
+# exec java -jar /usr/lib/java/apktool.jar "$@"
+# EOF
+# chmod +x /usr/bin/apktool
 
 
 ### -------------------------------------------------------------------
@@ -471,6 +498,8 @@ pipx install netexec
 #   wordlists (rockyou.txt, SecLists)
 ###
 ### DEFERRED - candidates for the pinned-release Ghidra pattern:
+#   jadx, apktool (blocked pending checksums - blocks retained,
+#                 commented, at top of this section's history)
 #   UEFITool     - UEFI image inspection/editing
 #   bettercap    - MITM/traffic interception (Go binary)
 #   chdman       - MAME compressed disc format (needs build recipe)
