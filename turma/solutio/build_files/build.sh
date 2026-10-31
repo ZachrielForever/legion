@@ -26,26 +26,46 @@
 #
 # VERIFICATION PASS: every package below is checked against enabled
 # repos (dnf5 repoquery) BEFORE any bulk install. Missing packages
-# are reported as a complete named list and the build fails there.
-# Only dnf5-plugins is installed unguarded (needed to enable the
-# COPR before the check can see its contents). This is the triage
-# gate: the CI failure output IS the why/where/how.
+# are reported as a complete named list plus the enabled repolist
+# (so repo-visibility anomalies like the 2026-10-31 xauth/ffmpeg
+# case can be diagnosed from the same output) and the build fails
+# there. Only dnf5-plugins is installed unguarded (needed to enable
+# the COPR before the check can see its contents). This is the
+# triage gate: the CI failure output IS the why/where/how.
 #
 # TRIAGE HISTORY:
-#   2026-10-31 - "python3-pipx" does not exist in Fedora; the
-#                correct package name is "pipx". Plumbing moved
-#                under the verification pass after it failed ahead
-#                of the triage report.
-#   2026-10-31 - jadx + apktool blocks commented out pending
-#                checksum hunt; promoted after first green build.
+#   2026-10-31 run 1 - "python3-pipx" does not exist in Fedora;
+#                correct name is "pipx". Plumbing moved under the
+#                verification pass after it failed ahead of the
+#                triage report.
+#   2026-10-31 run 1 - jadx + apktool blocks commented out pending
+#                checksum hunt; promote after first green build.
+#   2026-10-31 run 2 - F44 retirement wave renamed four packages:
+#                p7zip/p7zip-plugins -> 7zip (upstream abandoned
+#                2016; RAR covered by unrar), libguestfs-tools ->
+#                guestfs-tools (upstream split 2021), ewf-tools ->
+#                ewftools (Fedora subpackage naming), dosbox ->
+#                dosbox-staging (classic dosbox retired from Fedora).
+#                sqlmap moved to pipx (not packaged in Fedora at
+#                all). scrcpy dropped (COPR-only AND a workstation
+#                GUI tool - a headless node has no use for it).
+#                hashdeep KEPT deliberately: could not confirm
+#                either way, so the gate itself arbitrates; if it
+#                reappears, drop it and rely on ssdeep + sha256sum
+#                manifest workflow. xauth/ffmpeg anomalies: kept,
+#                repolist now dumped on failure to diagnose.
 #
 # KNOWN NOT PACKAGED (do not add to arrays - handled by pinned
 # release blocks or documented routes below):
-#   plaso           -> GIFT COPR @gift/stable (enabled below)
+#   plaso           -> GIFT COPR @gift/stable (enabled below);
+#                       array entry MUST read "plaso-tools" exactly
 #   zeek            -> openSUSE Build Service repos only; left OUT.
 #                      suricata covers protocol reconstruction.
 #   bettercap       -> Go binary; candidate for pinned-release block
 #   metasploit      -> Rapid7 nightly repo only; distrobox instead
+#   scrcpy          -> COPR-only (zeno/scrcpy); workstation tool,
+#                      run from your desktop, not this headless node
+#   sqlmap          -> pipx (see Python tier below)
 #   jadx, apktool   -> pinned GitHub releases; BLOCKED pending
 #                      checksums (see commented blocks below)
 #
@@ -69,14 +89,14 @@ PKGS_NETWORK=(
     wireshark-cli
     nmap
     socat
-    sqlmap
     hydra
 )
 
 # Archive & format excavation (XP-era and modern)
+# NOTE: p7zip/p7zip-plugins were RETIRED in Fedora 44; the official
+# upstream 7-Zip port replaces them. RAR handled by unrar.
 PKGS_ARCHIVE=(
-    p7zip
-    p7zip-plugins
+    7zip
     unar
     unrar
     bsdtar
@@ -131,20 +151,25 @@ PKGS_OBSERVE=(
 )
 
 # Full-system emulation for legacy OSes wine cannot serve
-# (Win9x/XP-era software in a sandboxed period-correct guest)
+# (Win9x/XP-era software in a sandboxed period-correct guest).
+# NOTE: classic dosbox was retired from Fedora; dosbox-staging is
+# the maintained successor (modern renderer, active development).
 PKGS_EMULATE=(
     qemu-system-x86
-    dosbox
+    dosbox-staging
 )
 
 # Filesystem, disk & VM image forensics
+# NOTE: guestfs-tools is the post-2021 split of libguestfs-tools
+# (carries guestfish, virt-*); ewftools is Fedora's subpackage name
+# for the libewf EWF utilities (Debian calls it ewf-tools).
 PKGS_DISK=(
     sleuthkit
     testdisk
     ddrescue
     qemu-img
-    libguestfs-tools
-    ewf-tools
+    guestfs-tools
+    ewftools
     mtools
     cryptsetup
     dislocker
@@ -234,6 +259,10 @@ PKGS_DB=(
 )
 
 # Integrity & fuzzy hashing
+# hashdeep deliberately retained despite run 2 triage flag: could
+# not confirm either way from outside; the gate arbitrates. If it
+# reappears as MISSING, remove it - ssdeep + sha256sum manifest
+# workflow covers integrity auditing.
 PKGS_HASH=(
     hashdeep
     ssdeep
@@ -246,10 +275,12 @@ PKGS_BIGIMAGE=(
     miller
 )
 
-# Mobile device access & mirroring
+# Mobile device access & mirroring.
+# scrcpy REMOVED: COPR-only packaging, and it is a display-mirroring
+# GUI tool - useless on a headless node. Run it from a workstation
+# against the USB-connected phone instead.
 PKGS_MOBILE=(
     android-tools
-    scrcpy
     libimobiledevice-utils
 )
 
@@ -269,6 +300,8 @@ PKGS_PLUMBING=(
 )
 
 # Third-party COPR additions (enabled below before verification)
+# SPELLING MATTERS: "plaso-tools" exactly - run 2 failed partly on
+# a spelling drift here.
 PKGS_COPR=(
     plaso-tools
 )
@@ -291,7 +324,8 @@ dnf5 makecache
 ### Verification pass - fail fast, name EVERYTHING that is missing
 ###
 ### Runs before any bulk install. A missing package aborts the build
-### with a complete list, so a red CI run is the triage report itself.
+### with a complete list plus the enabled repolist, so a red CI run
+### is both the triage report AND the diagnostic context.
 ### ------------------------------------------------------------------
 
 ALL_PKGS=(
@@ -334,6 +368,10 @@ if ((${#MISSING_PKGS[@]} > 0)); then
     for pkg in "${MISSING_PKGS[@]}"; do
         echo "  MISSING: ${pkg}"
     done
+    echo ""
+    echo "Enabled repos at time of check (for visibility diagnostics,"
+    echo "e.g. RPM Fusion availability):"
+    dnf5 repolist
     echo ""
     echo "Routes to resolution: correct the package name, verify the"
     echo "COPR/third-party repo is enabled, or move the tool to the"
@@ -478,6 +516,10 @@ pipx install urh
 pipx install awscli
 
 # --- offensive tier ---
+# Automatic SQL injection and database takeover - NOT packaged in
+# Fedora (everyone else ships it; Fedora doesn't), pure Python
+pipx install sqlmap
+
 # Windows/AD post-exploitation primitives (secretsdump, wmiexec, ...)
 pipx install impacket
 
@@ -507,4 +549,9 @@ pipx install netexec
 ###
 ### DEFERRED - distrobox, not signed image:
 #   metasploit (Rapid7 nightly repo only), dotnet SDKs
+###
+### REMOVED - reasoned out, do not re-add without updating the
+### triage history at the top:
+#   scrcpy - COPR-only AND a display-mirroring GUI tool; run from a
+#            workstation, not this headless node
 ### -------------------------------------------------------------------
