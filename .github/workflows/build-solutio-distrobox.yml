@@ -1,0 +1,76 @@
+# ==============================================================================
+# Build and push solutio distrobox images
+#
+# Sequential gates: offense box must build successfully before dotnet
+# box builds, matching your single-build-at-a-time methodology. Both
+# images are cosign-signed with your existing key.
+# ==============================================================================
+
+name: Build Solutio Distrox Images
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'turma/solutio/distrox/**'
+      - '.github/workflows/build-solutio-distrox.yml'
+
+env:
+  OWNER: zachrielforever
+  REGISTRY: ghcr.io
+  USERNAME: ${{ github.actor }}
+  PASSWORD: ${{ secrets.GITHUB_TOKEN }}
+
+jobs:
+  build-offense:
+    name: Build Solutio Offense Box
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build Container
+        run: |
+          podman build -t ${REGISTRY}/${OWNER}/solutio-offense:latest \
+            turma/solutio/distrox/offense/Containerfile
+
+      - name: Login to GHCR
+        run: echo "${PASSWORD}" | podman login ${REGISTRY} -u ${USERNAME} --password-stdin
+
+      - name: Push to GHCR
+        run: podman push ${REGISTRY}/${OWNER}/solutio-offense:latest
+
+      - name: Sign with Cosign
+        run: cosign sign --yes ${REGISTRY}/${OWNER}/solutio-offense:latest
+
+  build-dotnet:
+    name: Build Solutio .NET Box
+    runs-on: ubuntu-latest
+    needs: build-offense
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build Container
+        run: |
+          podman build -t ${REGISTRY}/${OWNER}/solutio-dotnet:latest \
+            turma/solutio/distrox/dotnet/Containerfile
+
+      - name: Login to GHCR
+        run: echo "${PASSWORD}" | podman login ${REGISTRY} -u ${USERNAME} --password-stdin
+
+      - name: Push to GHCR
+        run: podman push ${REGISTRY}/${OWNER}/solutio-dotnet:latest
+
+      - name: Sign with Cosign
+        run: cosign sign --yes ${REGISTRY}/${OWNER}/solutio-dotnet:latest

@@ -1,0 +1,38 @@
+# ==============================================================================
+# legion solutio-offense - disposable attack tooling (NOT SIGNED IMAGE)
+#
+# This distrobox container holds tools that violate our signed-image
+# discipline: netexec (git install, Rust compile), metasploit (Rapid7
+# nightly repo). It is QUARANTINED - built separately, pushed to GHCR,
+# cosign-signed independently, and run as ephemeral boxes on Solutio.
+#
+# Trust model: consuming third-party repos INSIDE this box is acceptable
+# because the box itself is disposable, quarantined from the host image's
+# signing chain, and rebuilt on demand.
+# ==============================================================================
+
+FROM ghcr.io/ublue-os/ucore:stable
+
+# Install Rust (required for netexec compilation)
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+
+ENV PATH="/root/.cargo/bin:${PATH}"
+
+# Core offensive tier - all pipx, all verified
+RUN curl -fsSL -o /tmp/pipx-bootstrap.py https://pipx.pypa.io/install-pipx.py && \
+    python3 /tmp/pipx-bootstrap.py && \
+    rm -f /tmp/pipx-bootstrap.py && \
+    ln -sf /root/.local/bin/pipx /usr/local/bin/pipx
+
+# Network reconnaissance and exploitation
+RUN pipx install impacket
+RUN pipx install responder
+RUN pipx install 'git+https://github.com/Pennyw0rth/NetExec.git@v1.5.1'
+
+# Metasploit - third-party repo (Rapid7), boxed for isolation
+RUN curl -fsSL https://packages.metasploit.com/metasploit-framework-latest.tar.gz | \
+    tar -xzvf - -C /opt --strip-components=1 && \
+    ln -sf /opt/msfconsole /usr/local/bin/msfconsole && \
+    ln -sf /opt/msfdb /usr/local/bin/msfdb
+
+ENTRYPOINT ["/bin/bash"]

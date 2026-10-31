@@ -1,0 +1,25 @@
+# ==============================================================================
+# legion solutio-dotnet - .NET SDKs and tools (disposable, NOT SIGNED IMAGE)
+#
+# .NET SDKs change too frequently to pin in the main image. This box
+# provides the latest LTS (.NET 8.0) plus current preview (.NET 9) for
+# TricksterRebuild and legacy game server work.
+#
+# Trust model: same as offense box - disposable, quarantined, independent
+# from the signed host image.
+# ==============================================================================
+
+FROM ghcr.io/ublue-os/ucore:stable
+
+# .NET 8.0 LTS (current stable) + 9.0 (preview, optional)
+RUN wget https://dot.net/v1/dotnet-install.sh -O /tmp/dotnet-install.sh && \
+    chmod +x /tmp/dotnet-install.sh && \
+    /tmp/dotnet-install.sh --channel 8.0 --install-dir /usr/share/dotnet && \
+    /tmp/dotnet-install.sh --channel 9.0 --install-dir /usr/share/dotnet && \
+    ln -sf /usr/share/dotnet/dotnet /usr/local/bin/dotnet && \
+    rm -f /tmp/dotnet-install.sh
+
+ENV DOTNET_ROOT=/usr/share/dotnet
+ENV PATH="${DOTNET_ROOT}:${PATH}"
+
+ENTRYPOINT ["/bin/bash"]
