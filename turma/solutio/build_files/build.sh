@@ -384,35 +384,38 @@ ln -sf "${GhidraDir}/support/analyzeHeadless" /usr/bin/ghidra-headless
 rm -f /tmp/ghidra.zip
 
 ### -------------------------------------------------------------------
-### jadx - parked pending release checksum (see run 1 triage log)
+### jadx - pinned release, checksum-verified (DEX/JAR -> Java)
 ### -------------------------------------------------------------------
 
-# JADX_VERSION="1.5.6"
-# JADX_URL="https://github.com/skylot/jadx/releases/download/v${JADX_VERSION}/jadx-${JADX_VERSION}.zip"
-# JADX_SHA256="fill from release page before enabling"
-#
-# curl -fL -o /tmp/jadx.zip "${JADX_URL}"
-# echo "${JADX_SHA256}  /tmp/jadx.zip" | sha256sum --check --strict
-# unzip -q /tmp/jadx.zip -d /usr/lib/jadx
-# ln -sf /usr/lib/jadx/bin/jadx /usr/bin/jadx
-# ln -sf /usr/lib/jadx/bin/jadx-gui /usr/bin/jadx-gui
-# rm -f /tmp/jadx.zip
+JADX_VERSION="1.5.6"
+JADX_URL="https://github.com/skylot/jadx/releases/download/v${JADX_VERSION}/jadx-${JADX_VERSION}.zip"
+JADX_SHA256="545ea2be9c242511bc145755cf4bda2485ade42966e096f8b4d3da2a230e8974"
+
+curl -fL -o /tmp/jadx.zip "${JADX_URL}"
+echo "${JADX_SHA256}  /tmp/jadx.zip" | sha256sum --check --strict
+
+mkdir -p /usr/lib/jadx
+unzip -q /tmp/jadx.zip -d /usr/lib/jadx
+ln -sf /usr/lib/jadx/bin/jadx /usr/bin/jadx
+ln -sf /usr/lib/jadx/bin/jadx-gui /usr/bin/jadx-gui
+rm -f /tmp/jadx.zip
 
 ### -------------------------------------------------------------------
-### apktool - parked pending release checksum (see run 1 triage log)
+### apktool - pinned release, checksum-verified (APK resources/smali)
 ### -------------------------------------------------------------------
 
-# APKTOOL_VERSION="3.0.0"
-# APKTOOL_URL="https://github.com/iBotPeaches/Apktool/releases/download/v${APKTOOL_VERSION}/apktool_${APKTOOL_VERSION}.jar"
-# APKTOOL_SHA256="fill from release page before enabling"
-#
-# curl -fL -o /usr/lib/java/apktool.jar "${APKTOOL_URL}"
-# echo "${APKTOOL_SHA256}  /usr/lib/java/apktool.jar" | sha256sum --check --strict
-# cat > /usr/bin/apktool <<'EOF'
-# #!/bin/sh
-# exec java -jar /usr/lib/java/apktool.jar "$@"
-# EOF
-# chmod +x /usr/bin/apktool
+APKTOOL_VERSION="3.0.3"
+APKTOOL_URL="https://github.com/iBotPeaches/Apktool/releases/download/v${APKTOOL_VERSION}/apktool_${APKTOOL_VERSION}.jar"
+APKTOOL_SHA256="dbf930b076c6b9be08d57c449cacefc3bdd6b71ebd59b3066fc0e1f5b14f9423"
+
+curl -fL -o /usr/lib/java/apktool.jar "${APKTOOL_URL}"
+echo "${APKTOOL_SHA256}  /usr/lib/java/apktool.jar" | sha256sum --check --strict
+
+cat > /usr/bin/apktool <<'EOF'
+#!/bin/sh
+exec java -jar /usr/lib/java/apktool.jar "$@"
+EOF
+chmod +x /usr/bin/apktool
 
 ### -------------------------------------------------------------------
 ### Python tooling via pipx - gated, failures collected and reported
