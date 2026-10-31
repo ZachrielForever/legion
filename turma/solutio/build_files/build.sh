@@ -419,27 +419,27 @@ chmod +x /usr/bin/apktool
 
 ### -------------------------------------------------------------------
 ### UEFIExtract + UEFIFind - pinned release, checksum-verified
-# Headless CLI siblings of UEFITool (NE A75). Extract dumps every
+# Headless CLI siblings of UEFITool (A75). Extract dumps every
 # module from a firmware image; Find searches by GUID/pattern.
-# Checksums cross-checkable against the release page.
+# NOTE: Release tag is "A75", not "NE_A75" (NE is part of the title).
 ### -------------------------------------------------------------------
 
 UEFITOOLS_VERSION="A75"
-UEFIEXTRACT_URL="https://github.com/LongSoft/UEFITool/releases/download/NE_A75/UEFIExtract_NE_${UEFITOOLS_VERSION}_x64_linux.zip"
+UEFIEXTRACT_URL="https://github.com/LongSoft/UEFITool/releases/download/${UEFITOOLS_VERSION}/UEFIExtract_NE_${UEFITOOLS_VERSION}_x64_linux.zip"
 UEFIEXTRACT_SHA256="5ee05d0da0c235626de67959d6cd97767e0d7ac67d42c8839e5972e8c23fd5a5"
-UEFIFIND_URL="https://github.com/LongSoft/UEFITool/releases/download/NE_A75/UEFIFind_NE_${UEFITOOLS_VERSION}_x64_linux.zip"
+UEFIFIND_URL="https://github.com/LongSoft/UEFITool/releases/download/${UEFITOOLS_VERSION}/UEFIFind_NE_${UEFITOOLS_VERSION}_x64_linux.zip"
 UEFIFIND_SHA256="4a3ff6995a20770bdf0e0a71b0daccb1b64280246240a9b7a52b3d46c0eaf1ae"
 
 curl -fL -o /tmp/uefiextract.zip "${UEFIEXTRACT_URL}"
 echo "${UEFIEXTRACT_SHA256}  /tmp/uefiextract.zip" | sha256sum --check --strict
 unzip -q /tmp/uefiextract.zip -d /usr/lib/uefitool
-ln -sf /usr/lib/uefitool/uefiextract /usr/bin/uefiextract
+ln -sf /usr/lib/uefitool/UEFIExtract /usr/bin/uefiextract
 rm -f /tmp/uefiextract.zip
 
 curl -fL -o /tmp/uefifind.zip "${UEFIFIND_URL}"
 echo "${UEFIFIND_SHA256}  /tmp/uefifind.zip" | sha256sum --check --strict
 unzip -q /tmp/uefifind.zip -d /usr/lib/uefitool
-ln -sf /usr/lib/uefitool/uefifind /usr/bin/uefifind
+ln -sf /usr/lib/uefitool/UEFIFind /usr/bin/uefifind
 rm -f /tmp/uefifind.zip
 
 ### -------------------------------------------------------------------
