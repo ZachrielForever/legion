@@ -445,17 +445,21 @@ rm -f /tmp/uefifind.zip
 ### -------------------------------------------------------------------
 ### bettercap - pinned release, checksum-verified
 # Network MITM/recon framework (WiFi, BLE, HID, CAN, IPv4/6).
-# Needs libpcap (tcpdump) and libusb (rtl-sdr); both present.
+# Zip hash harvested locally; binary hash from upstream .sha256.
 ### -------------------------------------------------------------------
 
 BETTERCAP_VERSION="2.41.7"
 BETTERCAP_URL="https://github.com/bettercap/bettercap/releases/download/v${BETTERCAP_VERSION}/bettercap_linux_amd64.zip"
-BETTERCAP_SHA256="REPLACE_WITH_HARVESTED_CHECKSUM"
+BETTERCAP_ZIP_SHA256="9f8869d10253f4aed73d4aeabeb9ff54b678613bd27f94d5aa3599dfb82cffe0"
+BETTERCAP_BIN_SHA256="c07db9028c76597e0e1baf5e50fbdeb63acbecf6b3511bb07f41feac625614ee"
 
 curl -fL -o /tmp/bettercap.zip "${BETTERCAP_URL}"
-echo "${BETTERCAP_SHA256}  /tmp/bettercap.zip" | sha256sum --check --strict
+echo "${BETTERCAP_ZIP_SHA256}  /tmp/bettercap.zip" | sha256sum --check --strict
+
 unzip -o -j /tmp/bettercap.zip -d /usr/lib/bettercap
 chmod +x /usr/lib/bettercap/bettercap
+echo "${BETTERCAP_BIN_SHA256}  /usr/lib/bettercap/bettercap" | sha256sum --check --strict
+
 ln -sf /usr/lib/bettercap/bettercap /usr/bin/bettercap
 rm -f /tmp/bettercap.zip
 
