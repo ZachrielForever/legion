@@ -452,13 +452,14 @@ for group in NETWORK ARCHIVE BINARY TOOLCHAIN OBSERVE EMULATE DISK \
     declare -n pkgs="PKGS_${group}"
     echo ">>> Installing group: ${group} (${#pkgs[@]} packages)"
 
-    # SPECIAL CASE: FUSION group requires --allowerasing
-    # The RPM Fusion ffmpeg/libswscale builds conflict with Fedora's
-    # vanilla packages; dnf needs permission to erase the Fedora
-    # versions before installing Fusion's. This is documented in
-    # RPM Fusion's install guide and is safe (it's the intended
-    # swap). ALL OTHER groups install normally.
-    if [[ "${group}" == "FUSION" ]]; then
+    # SPECIAL CASE: third-party-repo groups (FUSION, COPR) get
+    # --allowerasing. Both repos ship packages that deliberately
+    # CONFLICT with Fedora-native equivalents:
+    #   FUSION: ffmpeg-libs conflicts with the lib*-free split
+    #   COPR:   GIFT's libewf (newer) conflicts with Fedora's
+    # dnf needs permission to erase the Fedora version and swap
+    # in the third-party one. Native-repo groups never need this.
+    if [[ "${group}" == "FUSION" || "${group}" == "COPR" ]]; then
         dnf5 install -y --allowerasing "${pkgs[@]}"
     else
         dnf5 install -y "${pkgs[@]}"
