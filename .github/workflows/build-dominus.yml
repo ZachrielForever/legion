@@ -29,7 +29,8 @@ jobs:
       - name: Build Container
         run: |
           podman build -t ${REGISTRY}/${OWNER}/dominus:stable \
-            instrumentum/dominus/Containerfile
+            -f instrumentum/dominus/Containerfile \
+            instrumentum/dominus/
 
       - name: Login to GHCR
         run: echo "${PASSWORD}" | podman login ${REGISTRY} -u ${USERNAME} --password-stdin
