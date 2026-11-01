@@ -1,51 +1,12 @@
 #!/bin/bash
 
 # ==============================================================================
-# legion solutio - reverse-engineering / forensics toolbox (tailnet only)
+# legion solutio - forensic / reverse-engineering inspector node
 #
-# Task contract: if it exists, it can be extracted, inspected,
-# decompiled, and observed. Fat by design; coverage beats minimalism.
-#
-# Tools live in this signed image. DATA (rule sets, hash dbs, wordlists,
-# virus defs) does not - fetched post-deploy into /var, never baked.
-#
-# Offensive tooling in-scope ("best defense is a good offense").
-# Exceptions: metasploit (unsigned Rapid7 repo) and .NET SDKs live in
-# distroboxes, not the image.
-#
-# Third-party repos (GPG-signed, both asserted in repolist after enable):
-#   GIFT COPR @gift/stable  - plaso
-#   RPM Fusion free/nonfree - ffmpeg
-#
-# CI gates:
-#   - dnf verification pass: every package repoquery-checked before
-#     any install; failures reported as a named list.
-#   - pipx gate: per-tool install, failures collected and reported.
-#   - Repo enables are asserted, never trusted (exit codes lie).
-#
-# TRIAGE LOG:
-#   run 1: python3-pipx -> pipx; unguarded plumbing install moved
-#          under verification pass. jadx/apktool blocks parked
-#          pending checksums.
-#   run 2: F44 renames: p7zip -> 7zip, libguestfs-tools ->
-#          guestfs-tools, ewf-tools -> ewftools, dosbox ->
-#          dosbox-staging. sqlmap -> pipx. scrcpy dropped (COPR-only,
-#          GUI tool, headless node). hashdeep kept pending evidence.
-#   run 3: "dnf5 copr enable" silently declined without -y (no TTY);
-#          now -y + asserted. RPM Fusion absent from build container;
-#          now enabled via release RPMs. xauth -> xorg-x11-xauth.
-#          hashdeep removed (confirmed absent, two runs).
-#   run 4: install loop quoted arrays into one argument; rewritten
-#          with namerefs.
-#   run 5: ffmpeg-libs conflicts with lib*-free; --allowerasing on
-#          FUSION group.
-#   run 6: GIFT libewf conflicts with Fedora libewf; --allowerasing
-#          extended to COPR group.
-#   run 7: uefi-firmware-parser -> PyPI name "uefi-firmware";
-#          pipx triage gate added.
-#
-# GUI tools (ghidra, imhex, wireshark) run over ssh -X from a
-# workstation.
+# Tailnet-only inspector box: "if it exists, it can be decompiled
+# and inspected." Tools live in this signed image; DATA lives in
+# /var (see /usr/lib/solutio/fetch-data.sh). Offensive tier and
+# .NET SDKs run in quarantine distroboxes, not the host image.
 # ==============================================================================
 
 set -ouex pipefail
@@ -515,10 +476,7 @@ fi
 
 ### -------------------------------------------------------------------
 ### DEFERRED:
-#   data layer (/var, manifest-verified): yara rules, NSRL, clamav
-#   defs, volatility symbols, suricata rules, wordlists
-#   pinned-release candidates: jadx, apktool, UEFITool, bettercap,
-#   chdman, sasquatch
-#   distrobox: metasploit, dotnet SDKs
-# REMOVED (see triage log): scrcpy, hashdeep, zeek (OBS-only)
+# DEFERRED (no official route, revisit only if a target demands):
+#   chdman     - MAME source-tree only, no standalone release binary
+#   sasquatch  - third-party source patches only, no distro packaging
 ### -------------------------------------------------------------------

@@ -1,7 +1,11 @@
-# legion turma:lumen - public WAN web/file server (bastion)
+# ==============================================================================
+# legion solutio - forensic / reverse-engineering inspector node
 #
-# The sacrificial node. Serves HTTP/HTTPS to the world via Caddy,
-# holds nothing precious, trusts nobody, and fails closed.
+# Tailnet-only inspector box: "if it exists, it can be decompiled
+# and inspected." Tools live in this signed image; DATA lives in
+# /var (see /usr/lib/solutio/fetch-data.sh). Offensive tier and
+# .NET SDKs run in quarantine distroboxes, not the host image.
+# ==============================================================================
 
 FROM scratch AS ctx
 COPY build_files /

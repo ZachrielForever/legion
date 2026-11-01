@@ -1,63 +1,93 @@
 # Legion
 
-Custom [uCore](https://projectucore.org)-derived OS images for the home rack fleet.
+Custom OS images for the home rack fleet.
 
 One base image, many purpose-built variants. Every rack node runs an image
 built for its role — nothing more, nothing less.
 
-## Lineage
-
-ghcr.io/ublue-os/ucore:stable upstream base │ ▼ ghcr.io/ZachrielForever/legion:stable this repo — fleet policy │ ├── janus public WAN web/file (bastion) ├── vesta private web/file ├── orpheus private media ├── hephaestus dev server ├── heimdall toolbox: monitoring, DNS, network services ├── talos forgejo, CI runner, container registry ├── yggdrasil NAS └── mnemosyne emulation dock
-
-ghcr.io/ublue-os/ucore:stable-nvidia-lts separate lineage │ ▼ dominus game servers (GTX 1060)
+> [!IMPORTANT]
+> This repository is a **personal project**, maintained for a private
+> home lab. It is **not affiliated with, endorsed by, or related to the
+> Universal Blue team, organization, or community** in any way. Universal
+> Blue's excellent work is used as a foundation — please don't bring
+> legion's problems to them.
 
 ## The fleet
 
-| Node | Role | Image |
-|---|---|---|
-| Helius | primary workstation / build host | Bazzite |
+Two lines, split by chassis class. **Turma** is the mini PC fleet —
+compact nodes for services. **Instrumentum** is the full-size fleet —
+machines with room for discrete GPUs and heavier duties.
+
+### Turma — mini PC line
+
+| Node    | Role                                       | Image     |
+| ------- | ------------------------------------------ | --------- |
+| Lumen   | public WAN web/file (bastion)              | lumen     |
+| Vesta   | private web/file                           | vesta     |
+| Solutio | reverse engineering / forensics inspector | solutio   |
+| Vigil   | monitoring, DNS, network services          | vigil     |
+| Talos   | Forgejo, CI runner, container registry     | talos     |
+| Vox     | private media server                       | vox       |
+
+### Instrumentum — full PC line
+
+| Node    | Role              | Image   |
+| ------- | ----------------- | ------- |
 | Dominus | game server fleet | dominus |
-| Aegis | macOS host | — |
-| Thaumiel | Android rescue device | — |
-| Lumen | public WAN web/file | lumen |
-| Vesta | private web/file | vesta |
-| Vox | private media | vox |
-| Solutio | dev server | solutio |
-| Vigil | monitoring, DNS, network | vigil |
-| Talos | forgejo, runner, registry | talos |
-| Horreum | NAS | horreum |
-| Memoria | emulation dock | memoria *(planned)* |
+| Horreum | NAS               | horreum |
+| Memoria | emulation dock    | memoria *(planned)* |
 
-## What's in the base
+### Beyond the rack
 
-Fleet policy only — what is true of *every* node:
+Hosts that run outside the legion image system:
 
-- Tailscale (tailnet membership, enrollment persisted in `/var`)
-- Hardened SSH posture (keys only, no root login)
-- Interactive tooling: fish, micro, btop, fastfetch, tmux, git, jq, yq
-- Triage diagnostics: ethtool, iotop, lsof, mtr, strace, sysstat, bind-utils
-- Transfer and verification: rsync, pv, lz4, xz, zstd
+| Node     | Role                             |
+| -------- | -------------------------------- |
+| Helius   | primary workstation / build host  |
+| Aegis    | macOS host                       |
+| Thaumiel | Android rescue device            |
 
-Hardware specifics live in derived images. Role packages live in role variants.
+## Lineage
 
-## Building
+TBD — Dominus and Helius images are planned additions to the fleet,
+with everything kept under one roof. Diagram to come once the full
+roster is settled.
 
-Local build:
+## Security tiers
 
-just build
+Not everything belongs in a signed image. Three tiers, by trust boundary:
 
-Disk images for provisioning (ISO / qcow2 / raw):
+**Signed image** — role tooling, pinned and checksum-verified.
+Everything a node needs to do its job ships inside the image, including
+third-party tools pinned to tagged releases and verified with
+`sha256sum --check --strict` at build time.
 
-just build-iso just build-qcow2 just build-raw
+**Data layer** (`/var`) — rule sets, definitions, hash databases, and
+wordlists are fetched post-deploy by manifest, verified, and atomically
+installed. Tools live in the image; DATA does not.
 
-CI builds and pushes on every push to `main` via GitHub Actions.
+**Quarantine boxes** — tooling whose upstream can't meet the signing bar
+(unofficial repos, source-only builds) runs in disposable distrobox
+images, built and signed separately from the host image.
 
-## Credits
+## Built off of
 
-Built on the shoulders of:
+This project would not exist without the work of the teams below. Their
+images are pulled and built upon directly, per the inheritance chain of
+each variant — full credit for the foundations belongs to them:
 
-- **[uCore](https://projectucore.org)** — Fedora CoreOS-based server images with batteries included
-- **[Universal Blue](https://universal-blue.org)** — the image manufacturing process this all rests on
-- **[ublue-os/image-template](https://github.com/ublue-os/image-template)** — the build skeleton this repo derives from
+- **[Universal Blue](https://universal-blue.org/)** — the image
+  manufacturing process, tooling, and CI patterns this entire repo is
+  built on. The `ublue-os/image-template` is the direct skeleton from
+  which legion derives its structure.
+- **[uCore](https://projectucore.org)** — the Fedora CoreOS-based
+  server images that serve as the upstream base for the turma lineage.
+  Server-oriented conveniences, bootc conventions, and the sane defaults
+  all originate there.
+- **[Bazzite](https://bazzite.gg/)** — the gaming-focused images
+  standard for the workstation and emulation side of the fleet. Helius
+  runs it today, and the planned Memoria image leans on its lineage.
+
+Any bugs introduced on top of those foundations are legion's own.
 
 Licensed Apache-2.0, inherited from the template.
