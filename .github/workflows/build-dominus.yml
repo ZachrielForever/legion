@@ -33,7 +33,7 @@ jobs:
             instrumentum/dominus/
 
       - name: Login to GHCR
-        run: echo "${PASSWORD}" | podman login ${REGISTRY} -u ${USERNAME} --password-stdin
+        run: podman login ${REGISTRY} -u ${USERNAME} -p ${PASSWORD}
 
       - name: Push to GHCR
         run: podman push ${REGISTRY}/${OWNER}/dominus:stable
