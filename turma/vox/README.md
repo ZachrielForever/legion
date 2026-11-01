@@ -1,25 +1,39 @@
-# legion turma:vox - Media server deployment
+# Vox — private media server
 
-## First-boot steps
+Turma-line node. Media streaming over the tailnet only.
 
-1. Boot the node, join Tailscale:
-   ```bash
-   sudo tsh login
+Vox streams movies, music, and TV shows to the fleet — no
+public access, no transcoding, just file serving at native
+speed. It sits between Horreum (storage) and the end users
+(phones, laptops, TVs on the tailnet). Like Lumen, it
+serves media; unlike Lumen, it never touches the internet.
 
-    Deploy the Jellyfin quadlet:
+## What's inside
 
-   mkdir -p ~/.config/containers/systemd
-   # Copy/create quadlet file (see docs/quadlets/jellyfin.container)
-   sudo systemctl daemon-reload
-   sudo systemctl start jellyfin
+**Plex / Jellyfin** — media library management and streaming.
+Client discovery happens on the tailnet; no public port
+forwarding. Transcoding is disabled unless explicitly needed,
+so CPU load stays low and latency stays low.
 
-    Point Jellyfin at your media storage:
-        Configure libraries in Jellyfin web UI (tailscale-ip:8096)
-        Map /media mount points to NAS/Horreum storage
+**Storage** — mounts large datasets from Horreum (the NAS
+node). Vox is the streaming interface; Horreum is the data
+layer. They're logically separated so media storage can grow
+independently of streaming hardware.
 
-    Enable hardware transcoding in Jellyfin:
-        Settings → Playback → Hardware acceleration: VA-API
-        Device: /dev/dri/renderD128
+**Subtitles** — embedded where possible, or served from a
+local subtitle index. External subtitle fetching respects
+the tailnet boundary.
 
+## Difference from Lumen
 
-This doesn't get committed to the image itself — it's documentation for first boot.
+Both serve files over HTTP; only Lumen touches the public
+internet. Vox's Caddyfile listens on internal addresses
+only, no ACME, no public firewall zone. Media traffic
+doesn't compete with Lumen's HTTP load.
+
+## Planned
+
+- Subtitle indexing and matching automation
+- Library metadata repair scripts
+- Backup sync from Horreum (if not mirrored there)
+- Client device whitelisting if the library grows

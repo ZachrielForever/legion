@@ -1,0 +1,41 @@
+name: Build Dominus Image
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'instrumentum/dominus/**'
+      - '.github/workflows/build-dominus.yml'
+
+env:
+  REGISTRY: ghcr.io
+  OWNER: zachrielforever
+  USERNAME: ${{ github.actor }}
+  PASSWORD: ${{ secrets.GITHUB_TOKEN }}
+
+jobs:
+  build-dominus:
+    name: Build Dominus
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build Container
+        run: |
+          podman build -t ${REGISTRY}/${OWNER}/dominus:stable \
+            instrumentum/dominus/Containerfile
+
+      - name: Login to GHCR
+        run: echo "${PASSWORD}" | podman login ${REGISTRY} -u ${USERNAME} --password-stdin
+
+      - name: Push to GHCR
+        run: podman push ${REGISTRY}/${OWNER}/dominus:stable
+
+      - name: Sign with Cosign
+        run: cosign sign --yes ${REGISTRY}/${OWNER}/dominus:stable

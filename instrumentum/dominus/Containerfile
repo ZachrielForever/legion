@@ -1,0 +1,23 @@
+# ==============================================================================
+# legion dominus - game server fleet host
+#
+# Thin substrate for rootless quadlet game servers. Wine + 32-bit
+# multilib for legacy server binaries. No GPU, no dev tooling, no
+# third-party repos. Game content and steamcmd live in /var.
+# ==============================================================================
+
+FROM scratch AS ctx
+COPY build_files /
+COPY system_files /system_files
+
+FROM ghcr.io/ublue-os/ucore:stable
+
+### MODIFICATIONS
+RUN --mount=type=bind,from=ctx,source=/,target=/ctx \
+    --mount=type=cache,dst=/var/cache \
+    --mount=type=cache,dst=/var/log \
+    --mount=type=tmpfs,dst=/tmp \
+    /ctx/build.sh
+
+### LINTING
+RUN bootc container lint
