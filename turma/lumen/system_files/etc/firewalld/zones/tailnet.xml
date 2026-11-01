@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<zone>
+  <short>Tailnet</short>
+  <description>Fleet overlay network. Management access.</description>
+  <source address="100.64.0.0/10"/>
+  <service name="ssh"/>
+</zone>

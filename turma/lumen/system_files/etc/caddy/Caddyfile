@@ -1,11 +1,22 @@
-# TODO: replace with real domain when acquired
 # lumen.example.tld {
 #     basicauth {
 #         zachriel <bcrypt-hash-here>
 #     }
 #     file_server browse
 #     root * /srv/public
+#     
+#     log {
+#         output stderr
+#         format json
+#     }
 # }
+
 :80 {
     respond "Legion public endpoint" 200
+    
+    # Structured log for fail2ban to watch
+    log {
+        output stderr
+        format json
+    }
 }
