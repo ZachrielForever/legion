@@ -35,8 +35,11 @@ jobs:
       - name: Login to GHCR
         run: echo "${PASSWORD}" | podman login ${REGISTRY} -u ${USERNAME} --password-stdin
 
-      - name: Login to GHCR
-        run: podman login ghcr.io -u ${{ github.actor }} -p ${{ secrets.GITHUB_TOKEN }}
+      - name: Push to GHCR
+        run: podman push ${REGISTRY}/${OWNER}/dominus:stable
+
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@main
 
       - name: Sign with Cosign
         run: cosign sign --yes ${REGISTRY}/${OWNER}/dominus:stable
