@@ -16,6 +16,7 @@ PKGS=(
     tcpdump
     lazygit
     atuin
+    fish
     # xh: not in official F45 repos — installed via brew in lorica-setup
 )
 
