@@ -70,7 +70,7 @@ if ((${#FAILURES[@]} > 0)); then
     echo "================================================================"
     for item in "${FAILURES[@]}"; do
         echo "  FAILED: ${item}"
-    fi
+    done
     echo ""
     echo "Existing data was NOT modified for failed items."
     exit 1
