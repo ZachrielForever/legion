@@ -44,6 +44,14 @@ jobs:
       - name: Install just
         uses: extractions/setup-just@53165ef7e734c5c07cb06b3c8e7b647c5aa16db3 #v4.0.0
 
+      # Installed unconditionally and early: chunkah's verification pass
+      # runs on every build (incl. PRs), unlike rechunker-era flows.
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@756fe2d284c7292c4e9b62c8a28f1e5629c59532 # v4.1.3
+        with:
+          # be careful when upgrading major versions
+          cosign-release: 'v3.1.2'
+
       - name: Check Just Syntax
         shell: bash
         run: |
@@ -77,23 +85,62 @@ jobs:
             ${IMAGE_NAME} \
             ${DEFAULT_TAG}
 
-      # This is optional, this provides smaller delta updates
-      - name: Rechunk with rpm-ostree
+      # Reprocess the raw build with chunkah for content-based layers.
+      # Mirrors ublue-os/bazzite build.py cmd_rechunk. No --privileged needed.
+      - name: Run Chunkah
         id: rechunk
+        env:
+          # Pinned digest, same as bazzite's build.py default
+          CHUNKAH_IMAGE: "quay.io/coreos/chunkah:latest@sha256:8b56578258d1d10d3e1c7b0f71a4d05317c5fde331c4f483576a1b60e65f0cea"
         run: |
-          just ostree-rechunk \
-            ${IMAGE_NAME} \
-            ${DEFAULT_TAG}
+          set -euo pipefail
+          RAW_IMAGE="localhost/${IMAGE_NAME}:${DEFAULT_TAG}"
 
-      # If you are feeling adventurous, use the new distro agnostic rechunker
-      # https://github.com/coreos/chunkah
-      # You can delete the Rechunk with rpm-ostree portion then if you use this
-      #- name: Rechunk with Chunkah
-      #  id: rechunk
-      #  run: |
-      #    just rechunk \
-      #      ${IMAGE_NAME} \
-      #      ${DEFAULT_TAG}
+          # 1. Empty /run and /tmp contents (keep the dirs) in the raw image
+          buildah unshare bash -euo pipefail -c '
+            ctr=$(buildah from --pull=never "$1")
+            mnt=$(buildah mount "$ctr")
+            find "$mnt/run" -mindepth 1 -delete
+            find "$mnt/tmp" -mindepth 1 -delete
+            buildah unmount "$ctr"
+            buildah commit "$ctr" "$1"
+            buildah rm "$ctr"
+          ' bash "${RAW_IMAGE}"
+
+          # 2-3. Pull chunkah pinned, resolve digest, cosign-verify
+          podman pull "${CHUNKAH_IMAGE}"
+          chunkah_ref=$(podman image inspect \
+            --format "{{index .RepoDigests 0}}" "${CHUNKAH_IMAGE}")
+          cosign verify \
+            --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+            --certificate-identity-regexp "^https://github\.com/coreos/chunkah/" \
+            "${chunkah_ref}"
+
+          # 4-6. Carry config over, strip stale labels, compose chunked image
+          OUT_DIR="${RUNNER_TEMP}/chunkah-out"
+          mkdir -p "${OUT_DIR}"
+          podman image inspect "${RAW_IMAGE}" > "${OUT_DIR}/chunkah-config.json"
+
+          podman run --rm --pull=never \
+            --mount=type=image,src=${RAW_IMAGE},target=/chunkah \
+            --volume "${OUT_DIR}/chunkah-config.json:/chunkah-config.json:ro,Z" \
+            --volume "${OUT_DIR}:/run/out:Z" \
+            "${chunkah_ref}" \
+            build --verbose \
+            --max-layers 256 \
+            --prune /sysroot/ \
+            --label ostree.commit- \
+            --label ostree.final-diffid- \
+            --config /chunkah-config.json \
+            --output oci:/run/out/chunked
+
+          # 7. Consume raw image, re-tag chunked output in its place so
+          # downstream tag-images/push steps keep working unchanged
+          podman rmi -f "${RAW_IMAGE}" || true
+          chunked_id=$(podman pull "oci:${OUT_DIR}/chunked")
+          podman tag "${chunked_id}" "${RAW_IMAGE}"
+
+          echo "ref=containers-storage:${RAW_IMAGE}" >> "$GITHUB_OUTPUT"
 
       - name: Generate Build Tags
         id: gen-build-tags
@@ -145,12 +192,6 @@ jobs:
       # your project for others to consume. You will need to create a public and private key
       # using Cosign and save the private key as a repository secret in Github for this workflow
       # to consume. For more details, review the image signing section of the README.
-      - name: Install Cosign
-        uses: sigstore/cosign-installer@756fe2d284c7292c4e9b62c8a28f1e5629c59532 # v4.1.3
-        if: github.event_name != 'pull_request' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
-        with:
-          # be careful when upgrading major versions
-          cosign-release: 'v3.1.2'
 
       - name: Sign container image
         id: sign-image
