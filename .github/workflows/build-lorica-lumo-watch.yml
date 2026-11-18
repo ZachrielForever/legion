@@ -1,0 +1,96 @@
+---
+name: Watch Lumo desktop releases
+
+# Resolves proton.me's official version.json feed every 12 hours.
+# On a new Stable release, updates lorica/build_files/lumo.conf as
+# legion-automation. The conf commit triggers build-lorica.yml (its
+# lorica/** path filter matches), which rebuilds the image with the
+# new Lumo baked in. No-op on no change. Testing/unstable exclude the
+# conf from their path filters — Lumo freshness is a stable concern.
+
+on:
+  schedule:
+    # 04:00 and 16:00 UTC — off-peak; 16:00 lands ~10:00 Central
+    - cron: '0 4,16 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  watch:
+    name: Check for new Lumo release
+    runs-on: ubuntu-26.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Resolve latest stable release
+        id: resolve
+        run: |
+          set -euo pipefail
+          FEED="https://proton.me/download/lumo/desktop/linux/v1/version.json"
+
+          # Stable release, .rpm entry — the exact file Proton publishes.
+          # Normalize the CDN host to proton.me, same rewrite Proton's
+          # own download page performs on these URLs (protondownload.com
+          # is their file CDN; either host serves identical bytes).
+          STABLE=$(curl -fsSL "${FEED}" | jq -c '[.Releases[]
+            | select(.CategoryName == "Stable")] | .[0]')
+          NEW_VER=$(echo "${STABLE}" | jq -r '.Version')
+          RPM_URL=$(echo "${STABLE}" | jq -r \
+            '[.File[] | select(.Identifier | test("\\.rpm"))][0].Url'
+            | sed 's|^https://\([a-z]*\)\.protondownload\.com/|https://proton.me/download/\1/|')
+          RPM_SHA512=$(echo "${STABLE}" | jq -r \
+            '[.File[] | select(.Identifier | test("\\.rpm"))][0].Sha512CheckSum')
+
+          OLD_VER=$(grep '^LUMO_VERSION=' lorica/build_files/lumo.conf | cut -d= -f2)
+
+          echo "resolved=${NEW_VER}" >> "$GITHUB_OUTPUT"
+          echo "url=${RPM_URL}" >> "$GITHUB_OUTPUT"
+          echo "sha512=${RPM_SHA512}" >> "$GITHUB_OUTPUT"
+          echo "Feed stable: ${NEW_VER} (was: ${OLD_VER})"
+
+      - name: Update lumo.conf if changed
+        id: update
+        run: |
+          set -euo pipefail
+          NEW_VER="${{ steps.resolve.outputs.resolved }}"
+          RPM_URL="${{ steps.resolve.outputs.url }}"
+          RPM_SHA512="${{ steps.resolve.outputs.sha512 }}"
+
+          OLD_VER=$(grep '^LUMO_VERSION=' lorica/build_files/lumo.conf | cut -d= -f2)
+
+          if [[ "${NEW_VER}" == "${OLD_VER}" ]]; then
+            echo "unchanged=true" >> "$GITHUB_OUTPUT"
+            echo "No change (${NEW_VER}). Exiting."
+            exit 0
+          fi
+
+          [[ -n "${NEW_VER}" && -n "${RPM_URL}" && -n "${RPM_SHA512}" ]] \
+            || { echo "BAD FEED VALUES — aborting"; exit 1; }
+
+          {
+            echo "# Lumo desktop - pinned release for the lorica image."
+            echo "# Updated by build-lorica-lumo-watch.yml from proton.me's feed."
+            echo "LUMO_VERSION=${NEW_VER}"
+            echo "LUMO_RPM_URL=${RPM_URL}"
+            echo "LUMO_SHA512=${RPM_SHA512}"
+          } > lorica/build_files/lumo.conf
+
+          echo "unchanged=false" >> "$GITHUB_OUTPUT"
+          echo "New Lumo release: ${OLD_VER} -> ${NEW_VER}"
+
+      - name: Commit conf update
+        if: steps.update.outputs.unchanged == 'false'
+        run: |
+          git config user.name "legion-automation"
+          git config user.email "legion-automation@users.noreply.github.com"
+          git add lorica/build_files/lumo.conf
+          git commit -m "lumo: update to ${{ steps.resolve.outputs.resolved }}"
+          git push

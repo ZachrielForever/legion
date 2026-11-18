@@ -10,6 +10,8 @@ on:
       - main
     paths:
       - "lorica/**"
+      # Negation (last-match-wins): a Lumo-only bump is a stable concern.
+      - "!lorica/build_files/lumo.conf"
       - ".github/workflows/build-lorica-unstable.yml"
   schedule:
     # Upstream digest watch: 06:00 and 18:00 UTC

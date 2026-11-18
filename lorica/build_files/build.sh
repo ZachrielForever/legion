@@ -16,6 +16,11 @@ cp -avf "/ctx/system_files"/. /
 ### Core packages
 bash /ctx/10-install-packages.sh
 
+### Lumo desktop
+# First-party RPM, checksum-pinned in lumo.conf (see 20-install-lumo.sh).
+# Baked into all branches; watcher bumps land on stable via path filters.
+bash /ctx/20-install-lumo.sh
+
 ### Fleet identity
 # image-info.json declares the image's own name/branch. Upstream's
 # values survive derivation, so rewrite them for this node.
