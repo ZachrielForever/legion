@@ -92,4 +92,4 @@ jobs:
           git add lorica/build_files/lumo.conf
           git commit -m "lumo: update to ${{ steps.resolve.outputs.resolved }}"
           git push
-   git push
+
