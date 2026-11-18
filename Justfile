@@ -123,7 +123,7 @@ build $target_image=image_name $tag=default_tag $dir='.':
 
     # This actually builds the image!
     PODMAN_BUILD_ARGS=("${BUILD_ARGS[@]}" "${LABELS[@]}" --pull=newer --tag "${target_image}:${tag}" --build-arg "BASE_TAG=${tag}" --file "${dir}/Containerfile")
-    
+
     podman build "${PODMAN_BUILD_ARGS[@]}" "${dir}"
 
 # Split the image for smaller updates (New)!
