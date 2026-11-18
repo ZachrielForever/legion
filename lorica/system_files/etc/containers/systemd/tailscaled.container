@@ -1,0 +1,21 @@
+[Unit]
+Description=Tailscale node agent (tailnet uplink)
+Wants=network-online.target
+After=network-online.target
+
+[Container]
+Image=ghcr.io/tailscale/tailscale:latest
+ContainerName=tailscaled
+Exec=--state=/var/lib/tailscale --socket=/var/run/tailscale/tailscaled.sock
+Volume=/var/lib/tailscale:/var/lib/tailscale:Z
+Volume=/var/run/tailscale:/var/run/tailscale:Z
+Device=/dev/net/tun
+AddCapability=NET_ADMIN
+PublishPort=41641:41641/udp
+
+[Service]
+Restart=always
+TimeoutStartSec=120
+
+[Install]
+WantedBy=multi-user.target
