@@ -43,9 +43,7 @@ jobs:
           STABLE=$(curl -fsSL "${FEED}" | jq -c '[.Releases[]
             | select(.CategoryName == "Stable")] | .[0]')
           NEW_VER=$(echo "${STABLE}" | jq -r '.Version')
-          RPM_URL=$(echo "${STABLE}" | jq -r \
-            '[.File[] | select(.Identifier | test("\\.rpm"))][0].Url'
-            | sed 's|^https://\([a-z]*\)\.protondownload\.com/|https://proton.me/download/\1/|')
+          RPM_URL=$(echo "${STABLE}" | jq -r '[.File[] | select(.Identifier | test("\\.rpm"))][0].Url' | sed 's|^https://\([a-z]*\)\.protondownload\.com/|https://proton.me/download/\1/|')
           RPM_SHA512=$(echo "${STABLE}" | jq -r \
             '[.File[] | select(.Identifier | test("\\.rpm"))][0].Sha512CheckSum')
 
@@ -94,3 +92,4 @@ jobs:
           git add lorica/build_files/lumo.conf
           git commit -m "lumo: update to ${{ steps.resolve.outputs.resolved }}"
           git push
+   git push
