@@ -1,0 +1,33 @@
+#!/bin/bash
+# legion guard: replaces upstream brh on lorica.
+# Upstream brh composes rebase targets from bazzite-family variants
+# and would offer targets that evict this node from the fleet.
+# Fleet rebasing happens via lrh instead.
+
+source /usr/lib/ujust/ujust.sh
+
+red="\e[31m"; reset="\e[0m"; bold="$(tput bold 2>/dev/null)"; normal="$(tput sgr0 2>/dev/null)"
+
+guard_msg() {
+    echo -e "${red}[legion guard]${reset} ${bold}brh is disabled on lorica${normal}"
+    echo ""
+    echo "Upstream's rollback helper offers bazzite-family rebase"
+    echo "targets, which would take this node out of the fleet."
+    echo ""
+    echo "Use ${bold}lrh${normal} instead:"
+    echo "    lrh current        show current image + branch"
+    echo "    lrh list            list fleet branches (stable/testing/unstable)"
+    echo "    lrh rebase <tag>    rebase within the fleet"
+    echo "    lrh rollback        revert to previous deployment"
+    echo "    lrh current         (same as brh current)"
+}
+
+case "${1:-}" in
+    rollback|current)
+        exec lrh "$1"
+        ;;
+    *)
+        guard_msg
+        exit 1
+        ;;
+esac

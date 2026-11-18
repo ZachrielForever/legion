@@ -1,0 +1,86 @@
+#!/bin/bash
+# lrh — legion rebase helper for lorica.
+# Fleet-safe rebase tooling: only ever targets legion's own refs.
+# All operations land inside ghcr.io/zachrielforever/lorica:<branch>.
+
+set -euo pipefail
+
+IMAGE_INFO="/usr/share/ublue-os/image-info.json"
+NODE="lorica"
+REGISTRY="ghcr.io"
+ORG="zachrielforever"
+BRANCHES=(stable testing unstable)
+
+RED="\e[31m"; GREEN="\e[32m"; YELLOW="\e[33m"; CYAN="\e[36m"; RESET="\e[0m"
+BOLD=$(tput bold 2>/dev/null); NORMAL=$(tput sgr0 2>/dev/null)
+
+current() {
+    local image branch
+    image=$(jq -r '."image-name"' "$IMAGE_INFO")
+    branch=$(jq -r '."image-branch"' "$IMAGE_INFO")
+    echo -e "${CYAN}current:${RESET}"
+    echo "  image:  ${image}"
+    echo "  branch: ${branch}"
+    echo "  ref:    ${REGISTRY}/${ORG}/${image}:${branch}"
+}
+
+list() {
+    echo -e "${CYAN}fleet branches (${NODE}):${RESET}"
+    local b
+    for b in "${BRANCHES[@]}"; do
+        echo "  ${b}"
+    done
+}
+
+valid_branch() {
+    local b
+    for b in "${BRANCHES[@]}"; do
+        [[ "$1" == "$b" ]] && return 0
+    done
+    return 1
+}
+
+rebase() {
+    local target="${1:-}"
+    if [[ -z "$target" ]]; then
+        echo -e "${RED}usage: lrh rebase <branch>${RESET}"
+        echo "branches: ${BRANCHES[*]}"
+        exit 1
+    fi
+    if ! valid_branch "$target"; then
+        echo -e "${RED}invalid branch: '$target'${RESET}"
+        echo "this helper only rebases within the fleet."
+        echo "branches: ${BRANCHES[*]}"
+        exit 1
+    fi
+    local ref="ostree-image-signed:docker://${REGISTRY}/${ORG}/${NODE}:${target}"
+    echo -e "${YELLOW}rebasing to:${RESET} ${ref}"
+    read -r -p "continue? (y/N) " reply
+    [[ "$reply" =~ ^[Yy]$ ]] || { echo "aborted."; exit 0; }
+    exec rpm-ostree rebase "$ref"
+}
+
+rollback() {
+    exec rpm-ostree rollback
+}
+
+helptext() {
+    echo -e "${BOLD}lrh${NORMAL} — legion rebase helper (${NODE})"
+    echo ""
+    echo "All rebase targets stay inside the fleet;"
+    echo "there is no way to rebase out of the legion."
+    echo ""
+    echo "usage:"
+    echo "  lrh current        show current image and branch"
+    echo "  lrh list            list fleet branches"
+    echo "  lrh rebase <tag>    rebase to another lorica branch"
+    echo "  lrh rollback        revert to previous deployment"
+}
+
+case "${1:-}" in
+    current)  current ;;
+    list)     list ;;
+    rebase)   rebase "${2:-}" ;;
+    rollback) rollback ;;
+    *)        helptext; exit 0 ;;
+esac
