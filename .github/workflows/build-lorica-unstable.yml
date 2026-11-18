@@ -250,4 +250,9 @@ jobs:
           git config user.email "legion-automation@users.noreply.github.com"
           git add lorica/.upstream-digest-unstable
           git commit -m "lorica: record upstream digest (unstable)" || exit 0
-          git push
+          # Automation commits race across legs on the same branch pointer;
+          # if beaten to the push, pull-rebase our recording on top and retry.
+          if ! git push; then
+            git pull --rebase origin main
+            git push
+          fi
