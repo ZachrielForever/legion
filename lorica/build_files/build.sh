@@ -14,7 +14,7 @@ set -ouex pipefail
 cp -avf "/ctx/system_files"/. /
 
 ### Core packages
-/ctx/10-install-packages.sh
+bash /ctx/10-install-packages.sh
 
 ### Fleet identity
 # image-info.json declares the image's own name/branch. Upstream's
