@@ -28,3 +28,28 @@ lorica-setup:
 
     echo "Done. Reboot or re-login for flatpak menus, then:"
     echo "  sudo podman exec tailscaled tailscale up   # join the tailnet"
+
+# lorica: apply the fleet look — wallpaper, colors, icons
+# Apply the LoricaDark scheme (violet accent, steel-teal buttons),
+# scale-mail wallpaper, and Papirus icons in one shot.
+lorica-theme:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    echo "=== Applying LoricaDark scheme ==="
+    plasma-apply-colorscheme LoricaDark
+
+    echo "=== Setting scale-mail wallpaper ==="
+    plasma-apply-wallpaper-image /usr/share/backgrounds/lorica/scales.png
+
+    echo "=== Papirus icons ==="
+    if command -v plasma-apply-icontheme >/dev/null 2>&1; then
+        plasma-apply-icontheme papirus
+    else
+        echo "plasma-apply-icontheme not available — set icons manually."
+    fi
+
+    echo ""
+    echo "  ┌─[ lorica theme ]"
+    echo "  │ Armor on. LoricaDark applied — one violet scale among the steel."
+    echo "  └─ Re-login to settle decoration buttons."
