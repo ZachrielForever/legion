@@ -17,6 +17,7 @@ PKGS=(
     lazygit
     atuin
     fish
+    papirus-icon-theme
     # xh: not in official F45 repos — installed via brew in lorica-setup
 )
 

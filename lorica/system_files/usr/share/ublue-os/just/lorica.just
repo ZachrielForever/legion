@@ -40,7 +40,7 @@ lorica-theme:
     plasma-apply-colorscheme LoricaDark
 
     echo "=== Setting scale-mail wallpaper ==="
-    plasma-apply-wallpaper-image /usr/share/backgrounds/lorica/scales.png
+    plasma-apply-wallpaper-image /usr/share/backgrounds/lorica/lumo.png
 
     echo "=== Papirus icons ==="
     if command -v plasma-apply-icontheme >/dev/null 2>&1; then
