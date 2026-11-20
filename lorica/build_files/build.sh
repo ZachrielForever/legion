@@ -12,6 +12,9 @@ set -ouex pipefail
 
 # Copy system_files (fastfetch config reserved for fleet identity)
 cp -avf "/ctx/system_files"/. /
+# Git cannot carry full file modes (only exec bit) — enforce Private=0700
+# here so new-user homes keep it user-only from first login.
+chmod 700 /etc/skel/Private
 
 ### Core packages
 bash /ctx/10-install-packages.sh
