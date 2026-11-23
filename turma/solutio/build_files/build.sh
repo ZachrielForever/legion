@@ -446,7 +446,9 @@ PIPX_TOOLS=(
     uefi-firmware      # UEFI/ME/Dell firmware parsing
     jefferson          # JFFS2 extraction
     ubi_reader         # UBI/UBIFS extraction
-    urh                # SDR signal inspection
+    # urh: pending cp315 wheels (PyPI 2.10.0 tops out at cp314) - base
+    # now runs Python 3.15.2; sdist source-build fails. Re-enable when
+    # upstream publishes a cp315 wheel. Tracked Nov 23 2026.
     awscli             # cloud inspection
     sqlmap             # SQL injection (offense)
     impacket           # AD post-exploitation (offense)
