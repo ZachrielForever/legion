@@ -63,10 +63,12 @@ fetch_pinned azahar "${AZAHAR_URL}" "${AZAHAR_SHA256}" /usr/lib/azahar \
     bash -c 'chmod +x "$0"; cd "$1" && "$0" --appimage-extract >/dev/null && mv squashfs-root/* . && rm -rf squashfs-root'
 ln -sf /usr/lib/azahar/AppRun /usr/bin/azahar
 
-# Vita3K - PS Vita. Experimental; ~50% of tested titles playable per upstream.
-fetch_pinned vita3k "${VITA3K_URL}" "${VITA3K_SHA256}" /usr/lib/vita3k \
-    bash -c 'chmod +x "$0"; cd "$1" && "$0" --appimage-extract >/dev/null && mv squashfs-root/* . && rm -rf squashfs-root'
-ln -sf /usr/lib/vita3k/AppRun /usr/bin/vita3k
+# Vita3K gated out 2026-11-23: PS Vita is above the PS2/GC scope ceiling and
+# the 'continuous' rolling artifact tripped its checksum tripwire (by design).
+# Re-enable only after scope grows to include Vita AND the new build is reviewed.
+# fetch_pinned vita3k "${VITA3K_URL}" "${VITA3K_SHA256}" /usr/lib/vita3k \
+#     bash -c 'chmod +x "$0"; cd "$1" && "$0" --appimage-extract >/dev/null && mv squashfs-root/* . && rm -rf squashfs-root'
+# ln -sf /usr/lib/vita3k/AppRun /usr/bin/vita3k
 
 # melonDS - NDS. Built from source: no official RPM (Fedora policy excludes it -
 # requires firmware dumps), COPR trust level not acceptable for image baking.
