@@ -4,22 +4,24 @@
 # Derived from bazzite (KDE, stable). Console-first frontend experience,
 # desktop escapable. Scope: NES -> PS2 + handhelds. Rom cache pulls from
 # Horreum (Dominus); stateless-ish, cache wiped on boot.
+#
+# NOTE: just build passes --build-arg BASE_TAG=<image-tag> on every build,
+# overriding any ARG default. Hardcode the FROM tag like horreum/dominus.
 # ==============================================================================
-
-ARG BASE_TAG=stable
 
 FROM scratch AS ctx
 COPY build_files /
 COPY system_files /system_files
 
-FROM ghcr.io/ublue-os/bazzite:${BASE_TAG}
+# Base Image
+FROM ghcr.io/ublue-os/bazzite:stable
 
 ### MODIFICATIONS
 RUN --mount=type=bind,from=ctx,source=/,target=/ctx \
     --mount=type=cache,dst=/var/cache \
     --mount=type=cache,dst=/var/log \
     --mount=type=tmpfs,dst=/tmp \
-    BASE_TAG=${BASE_TAG} bash /ctx/build.sh
+    bash /ctx/build.sh
 
 ### LINTING
 RUN bootc container lint
