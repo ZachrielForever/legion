@@ -37,10 +37,18 @@ dnf5 install -y \
     ppsspp-sdl
 
 ### ---------------------------------------------------------------------------
-### Emulators - pinned upstream releases (no RPM exists)
+### Pinned upstream releases - re-scoped Nov 23 2026 (console experience, ceiling PS2/GC)
 ### ---------------------------------------------------------------------------
 # Same discipline as Solutio's Ghidra: pinned version, SHA-256 verified,
 # extracted into /usr/lib, symlinked into /usr/bin.
+#
+# GATED OUT (chunk-3 re-scope): melonDS, Azahar, Vita3K.
+#   - melonDS: source build requires SDL2-devel -> pkgconfig(glu) chain, but
+#     bazzite's base filters out mesa-libGLU-devel by exclude. Also drags a
+#     full cmake/qt6 toolchain into the image. RetroArch melonDS core covers NDS.
+#   - Azahar (3DS) and Vita3K (PSV): above the PS2/GC ceiling per new brief;
+#     Vita3K is a rolling-release checksum tripwire that would break CI randomly.
+#   Kept: blastem (Genesis/32X, within scope, checksum verified).
 
 fetch_pinned() {
     local name="$1" url="$2" sha="$3" dest="$4"
@@ -58,10 +66,11 @@ fetch_pinned blastem "${BLASTEM_URL}" "${BLASTEM_SHA256}" /usr/lib/blastem \
     bash -c 'tar -xf "$0" -C "$1" --strip-components=1'
 ln -sf /usr/lib/blastem/blastem /usr/bin/blastem
 
-# Azahar - 3DS (Citra successor). AppImage, extracted - no FUSE at runtime.
-fetch_pinned azahar "${AZAHAR_URL}" "${AZAHAR_SHA256}" /usr/lib/azahar \
-    bash -c 'chmod +x "$0"; cd "$1" && "$0" --appimage-extract >/dev/null && mv squashfs-root/* . && rm -rf squashfs-root'
-ln -sf /usr/lib/azahar/AppRun /usr/bin/azahar
+# Azahar gated out 2026-11-23: 3DS is above the PS2/GC scope ceiling.
+# Re-enable only if scope grows (URL/hash pins stay in pins.env).
+# fetch_pinned azahar "${AZAHAR_URL}" "${AZAHAR_SHA256}" /usr/lib/azahar \
+#     bash -c 'chmod +x "$0"; cd "$1" && "$0" --appimage-extract >/dev/null && mv squashfs-root/* . && rm -rf squashfs-root'
+# ln -sf /usr/lib/azahar/AppRun /usr/bin/azahar
 
 # Vita3K gated out 2026-11-23: PS Vita is above the PS2/GC scope ceiling and
 # the 'continuous' rolling artifact tripped its checksum tripwire (by design).
@@ -70,19 +79,22 @@ ln -sf /usr/lib/azahar/AppRun /usr/bin/azahar
 #     bash -c 'chmod +x "$0"; cd "$1" && "$0" --appimage-extract >/dev/null && mv squashfs-root/* . && rm -rf squashfs-root'
 # ln -sf /usr/lib/vita3k/AppRun /usr/bin/vita3k
 
-# melonDS - NDS. Built from source: no official RPM (Fedora policy excludes it -
-# requires firmware dumps), COPR trust level not acceptable for image baking.
-dnf5 install -y cmake ninja-build gcc-c++ qt6-qtbase-devel qt6-qtmultimedia-devel \
-    libslirp-devel zstd-devel libarchive-devel SDL2-devel libepoxy-devel
-curl -fL --retry 3 -o /tmp/melonds.tar.gz "${MELONDS_URL}"
-echo "${MELONDS_SHA256}  /tmp/melonds.tar.gz" | sha256sum --check --strict
-mkdir -p /tmp/melonds-src
-tar -xf /tmp/melonds.tar.gz -C /tmp/melonds-src --strip-components=1
-cmake -S /tmp/melonds-src -B /tmp/melonds-build -G Ninja \
-    -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr
-ninja -C /tmp/melonds-build
-ninja -C /tmp/melonds-build install
-rm -rf /tmp/melonds-src /tmp/melonds-build /tmp/melonds.tar.gz
+# melonDS gated out 2026-11-23: source build drags the cmake/qt6 toolchain
+# into the image, and SDL2-devel now requires pkgconfig(glu) which bazzite's
+# base exclude-filters (mesa-libGLU-devel unavailable). zstd-devel also
+# renamed to libzstd-devel in F45. RetroArch's melonDS core covers NDS.
+# Pins retained in pins.env for a possible flatpak/core pivot.
+# dnf5 install -y cmake ninja-build gcc-c++ qt6-qtbase-devel qt6-qtmultimedia-devel \
+#     libslirp-devel zstd-devel libarchive-devel SDL2-devel libepoxy-devel
+# curl -fL --retry 3 -o /tmp/melonds.tar.gz "${MELONDS_URL}"
+# echo "${MELONDS_SHA256}  /tmp/melonds.tar.gz" | sha256sum --check --strict
+# mkdir -p /tmp/melonds-src
+# tar -xf /tmp/melonds.tar.gz -C /tmp/melonds-src --strip-components=1
+# cmake -S /tmp/melonds-src -B /tmp/melonds-build -G Ninja \
+#     -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr
+# ninja -C /tmp/melonds-build
+# ninja -C /tmp/melonds-build install
+# rm -rf /tmp/melonds-src /tmp/melonds-build /tmp/melonds.tar.gz
 
 ### ---------------------------------------------------------------------------
 ### ROM cache layer
