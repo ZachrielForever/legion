@@ -4,6 +4,7 @@ set -euo pipefail
 
 CONF="/etc/memoria/roms.conf"
 ROMCACHE_DIR="/var/cache/memoria/roms"
+# shellcheck disable=SC1090
 [ -r "${CONF}" ] && source "${CONF}"
 ROMCACHE_DIR="${ROMCACHE_DIR:-/var/cache/memoria/roms}"
 
